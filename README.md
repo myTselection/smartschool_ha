@@ -22,7 +22,7 @@ Integration of python application of [https://github.com/IntelCoreI6/smartschool
 ## Installation
 - [HACS](https://hacs.xyz/): search for Smartschool in HACS integrations and install
   - [![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg?style=flat-square)](https://my.home-assistant.io/redirect/hacs_repository/?owner=myTselection&repository=smartschool_ha&category=integration)
-  or add this repository as custom repository into your HACS
+  - or add this repository as custom repository into your HACS
 - Restart Home Assistant
 - Add 'Smartschool' integration via HA Settings > 'Devices and Services' > 'Integrations'
 - Provide Smartschool credentials

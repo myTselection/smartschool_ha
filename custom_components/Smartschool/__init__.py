@@ -23,7 +23,7 @@ DOMAIN = manifest_data.get("domain")
 NAME = manifest_data.get("name")
 VERSION = manifest_data.get("version")
 ISSUEURL = manifest_data.get("issue_tracker")
-PLATFORMS = [Platform.SENSOR]
+PLATFORMS = [Platform.TODO]
 
 STARTUP = """
 -------------------------------------------------------------------
@@ -49,8 +49,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType):
         return True
 
     try:
-        await hass.config_entries.async_forward_entry(config, Platform.SENSOR)
-        _LOGGER.info("Successfully added sensor from the integration")
+        await hass.config_entries.async_forward_entry(config, Platform.TODO)
+        _LOGGER.info("Successfully added platform from the integration")
     except ValueError:
         pass
 
@@ -99,6 +99,7 @@ def register_services(hass, config_entry):
         """Handle the service call."""
         
         config = config_entry.data
+        smartschool_domain = config.get("smartschool_domain")
         username = config.get("username")
         password = config.get("password")
 
