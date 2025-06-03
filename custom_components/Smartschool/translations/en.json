@@ -1,0 +1,54 @@
+{
+    "config": {
+        "title": "Smartschool",
+        "step": {
+            "user": {
+                "description": "Setup a Smartschool integration, username and password are required.",
+                "data": {
+                    "smartschool_domain": "Smartschool domain",
+                    "username": "Username",
+                    "password": "Password"
+                }
+            },
+            "edit": {
+                "description": "Edit a Smartschool integration, username and password are required.",
+                "data": {
+                    "smartschool_domain": "Smartschool domain",
+                    "username": "Username",
+                    "password": "Password"
+                }
+            }
+
+        },
+        "error": {
+            "missing username": "Please provide a valid Smartschool username",
+            "missing password": "Please provide a valid Smartschool password",
+            "missing data options handler": "Option handler failed",
+            "no_valid_settings": "No valid settings, provide username, password in ha config."
+        }
+    },
+    "options": {
+        "step": {
+            "edit": {
+                "description": "Edit setup a Smartschool integration, username and password are required.",
+                "data": {
+                    "smartschool_domain": "Smartschool domain",
+                    "username": "Username",
+                    "password": "Password"
+                }
+            }
+        },
+        "error": {
+            "missing username": "Please provide a valid Smartschool username",
+            "missing password": "Please provide a valid Smartschool password",
+            "missing data options handler": "Option handler failed",
+            "no_valid_settings": "No valid settings, provide username, password in ha config."
+        }
+    },
+    "services": {
+        "todo": {
+            "name": "todo",
+            "description": "Todo"
+        }
+    }
+}
