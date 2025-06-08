@@ -1,5 +1,5 @@
 {
-    "domain": "Smartschool",
+    "domain": "smartschool",
     "name": "Smartschool",
     "codeowners": ["@myTselection"],
     "config_flow": true,
