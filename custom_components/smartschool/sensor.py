@@ -145,7 +145,7 @@ class ComponentUserSensor(Entity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        return self._last_update.strftime("%Y-%m-%d %H:%M:%S")
+        return self._last_update.strftime("%Y-%m-%d %H:%M:%S") if self._last_update else None
 
     async def async_update(self):
         await self._data.update()
@@ -201,12 +201,12 @@ class ComponentUserSensor(Entity):
     @property
     def unit(self) -> int:
         """Unit"""
-        return int
+        return datetime
 
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement this sensor expresses itself in."""
-        return "TBD"
+        return ""
 
     @property
     def friendly_name(self) -> str:
