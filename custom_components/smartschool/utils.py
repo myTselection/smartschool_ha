@@ -60,3 +60,7 @@ class ComponentSession(object):
         self.session = Smartschool.start(self.creds)
         return {}
 
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    def getFutureTasks(self):
+        return FutureTasks()

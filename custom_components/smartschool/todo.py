@@ -30,7 +30,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     await coordinator.async_initialize()
 
     list_ids = coordinator._lists.keys()
-    async_add_entities([ComponentTodoListEntity(hass, coordinator, list_name) for list_name in list_ids])
+    async_add_entities([ComponentTodoListEntity(hass, coordinator, list_name, coordinator._unique_user_id) for list_name in list_ids])
 
     return True
 
@@ -41,16 +41,21 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
     _LOGGER = logging.getLogger(DOMAIN)
     _attr_has_entity_name = True
     _attr_supported_features = (
-        TodoListEntityFeature.UPDATE_TODO_ITEM | TodoListEntityFeature.DELETE_TODO_ITEM | TodoListEntityFeature.CREATE_TODO_ITEM
+        TodoListEntityFeature.UPDATE_TODO_ITEM | 
+        TodoListEntityFeature.DELETE_TODO_ITEM | 
+        TodoListEntityFeature.CREATE_TODO_ITEM | 
+        TodoListEntityFeature.SET_DUE_DATE_ON_ITEM | 
+        TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM 
     )
 
-    def __init__(self, hass, coordinator, list_name: str):
+    def __init__(self, hass, coordinator, list_name: str, unique_user_id: str):
         super().__init__(coordinator)
         self.coordinator = coordinator
         self._attr_unique_id = f"{DOMAIN}_{list_name}"
         self._attr_name = list_name
         self.list_name = list_name
         self._list_id = list_name
+        self._unique_user_id = unique_user_id
         self.hass = hass
         self._status_store = ChecklistStatusStorage(hass)
         self._items = []
@@ -83,7 +88,7 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         for idx, existing in enumerate(items):
             if existing.uid == item.uid:
                 items[idx] = item
-                await self.coordinator.update_status(self._list_id, item.uid, item.status)
+                await self.coordinator.update_status(self._unique_user_id, item.uid, item.status)
                 self.async_write_ha_state()
                 return
 
@@ -91,7 +96,7 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         _LOGGER.debug("Creating todo item in '%s': %s", self._list_id, item)
         items = self.coordinator.get_items(self._list_id)
         items.append(item)
-        await self.coordinator.update_status(self._list_id, item.uid, item.status)
+        await self.coordinator.update_status(self._unique_user_id, item.uid, item.status)
         self.async_write_ha_state()
 
 
@@ -101,11 +106,11 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         items = self.coordinator.get_items(self._list_id)
         self.coordinator._lists[self._list_id] = [i for i in items if i.uid not in uids]
         for uid in uids:
-            await self.coordinator.delete_status(self._list_id, uid)
+            await self.coordinator.delete_status(self._unique_user_id, uid)
         self.async_write_ha_state()
         
 
     async def async_will_remove_from_hass(self) -> None:
         """Clean up storage when entity is removed."""
         _LOGGER.info("Checklist entity removed from hass: %s", self._list_id)
-        await self.coordinator.remove_list(self._list_id)
+        await self.coordinator.remove_list(self._list_id, self._unique_user_id)
