@@ -25,6 +25,7 @@ Integration of python application of [https://github.com/IntelCoreI6/smartschool
 - Restart Home Assistant
 - Add 'Smartschool' integration via HA Settings > 'Devices and Services' > 'Integrations'
 - Provide Smartschool credentials
+  - Birth date notation: YYYY-MM-DD
 
 ## Usage
 
