@@ -16,7 +16,7 @@ This integration is in no way affiliated with Smartschool.
 
 
 Integration of python application of [https://github.com/IntelCoreI6/smartschool_mcp](https://github.com/IntelCoreI6/smartschool_mcp) (fork of [https://github.com/svaningelgem/smartschool](https://github.com/svaningelgem/smartschool)).
-<p align="left"><img src="./logo.png" width="64"/></p>
+<p align="left"><img src="./logo.png" width="300"/></p>
 
 ## Installation
 - [HACS](https://hacs.xyz/): search for Smartschool in HACS integrations and install
