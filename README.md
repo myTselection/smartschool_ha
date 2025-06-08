@@ -16,7 +16,7 @@ This integration is in no way affiliated with Smartschool.
 
 
 Integration of python application of [https://github.com/IntelCoreI6/smartschool_mcp](https://github.com/IntelCoreI6/smartschool_mcp) (fork of [https://github.com/svaningelgem/smartschool](https://github.com/svaningelgem/smartschool)).
-<p align="left"><img src="https://github.com/myTselection/smartschool_ha/blob/main/custom_components/smartschool_ha/logo.png" width="300"/></p>
+<p align="center"><img src="https://github.com/myTselection/smartschool_ha/blob/main/logo.png?raw=true" width="500"/></p>
 
 ## Installation
 - [HACS](https://hacs.xyz/): search for Smartschool in HACS integrations and install
@@ -74,4 +74,4 @@ logger:
 
 ## Example usage:
 
-<p align="left"><img src="https://github.com/myTselection/smartschool_ha/blob/main/custom_components/smartschool_ha/Example1.png"/></p>
+<p align="left"><img src="https://github.com/myTselection/smartschool_ha/blob/main/Example1.png?raw=true"/></p>
