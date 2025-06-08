@@ -13,6 +13,14 @@ from homeassistant.util import Throttle
 
 from . import DOMAIN, NAME
 from .utils import *
+from homeassistant.const import (
+    CONF_PASSWORD,
+    CONF_USERNAME
+)
+from .const import (
+    CONF_BIRTH_DATE,
+    CONF_SMARTSCHOOL_DOMAIN
+)
 
 _LOGGER = logging.getLogger(__name__)
 _DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.0%z"
@@ -20,8 +28,10 @@ _DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.0%z"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
-        vol.Required("username"): cv.string,
-        vol.Required("password"): cv.string,
+        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_PASSWORD): cv.string,
+        vol.Required(CONF_SMARTSCHOOL_DOMAIN): cv.string,
+        vol.Required(CONF_BIRTH_DATE): cv.string,
     }
 )
 
@@ -30,9 +40,10 @@ MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=120 + random.uniform(10, 20))
 
 async def dry_setup(hass, config_entry, async_add_devices):
     config = config_entry
-    username = config.get("username")
-    password = config.get("password")
-    smartschool_domain = config.get("smartschool_domain")
+    username = config.get(CONF_USERNAME)
+    password = config.get(CONF_PASSWORD)
+    smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
+    birth_date = config.get(CONF_BIRTH_DATE)
 
     check_settings(config, hass)
     sensors = []
@@ -41,6 +52,7 @@ async def dry_setup(hass, config_entry, async_add_devices):
         username,
         password,
         smartschool_domain,
+        birth_date,
         async_get_clientsession(hass),
         hass
     )
@@ -79,10 +91,11 @@ async def async_remove_entry(hass, config_entry):
         
 
 class ComponentData:
-    def __init__(self, username, password, smartschool_domain, client, hass):
+    def __init__(self, username, password, smartschool_domain, birth_date, client, hass):
         self._username = username
         self._password = password
         self._smartschool_domain = smartschool_domain
+        self._birth_date = birth_date
         self._client = client
         self._hass = hass
         self._session = ComponentSession()
@@ -96,32 +109,9 @@ class ComponentData:
             self._session = ComponentSession()
 
         if self._session:
-            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain))
+            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._birth_date))
             assert self._userdetails is not None
             _LOGGER.debug(f"{NAME} update login completed")
-            # for user_id, userdetail in self._userdetails.items():
-            #     url = userdetail.get('loans').get('url')
-            #     if url:
-            #         _LOGGER.info(f"Calling loan details {userdetail.get('account_details').get('userName')}")
-            #         loandetails = await self._hass.async_add_executor_job(lambda: self._session.loan_details(url))
-            #         assert loandetails is not None
-            #         username = userdetail.get('account_details').get('userName')
-            #         barcode = userdetail.get('account_details').get('barcode')
-            #         barcode_spell = userdetail.get('account_details').get('barcode_spell')
-            #         for loan_info in loandetails.values():
-            #             loan_info["user"] = username
-            #             loan_info["userid"] = user_id
-            #             loan_info["barcode"] = barcode
-            #             loan_info["barcode_spell"] = barcode_spell
-            #             libraryName = loan_info.get('library')
-            #             libraryurl = f"{loan_info['url'].split('/resolver')[0]}/adres-en-openingsuren"
-            #             if not self._librarydetails.get(libraryName):
-            #                 _LOGGER.info(f"Calling library details {userdetail.get('account_details').get('userName')}")
-            #                 librarydetails = await self._hass.async_add_executor_job(lambda: self._session.library_details(libraryurl))
-            #                 assert librarydetails is not None
-            #                 self._librarydetails[libraryName] = librarydetails
-            #         _LOGGER.debug(f"loandetails {json.dumps(loandetails,indent=4)}") 
-            #         self._loandetails[user_id] = loandetails
 
             self._lastupdate = datetime.now()
                 

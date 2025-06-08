@@ -1,6 +1,7 @@
 """Adds config flow for component."""
 import logging
 from collections import OrderedDict
+import re
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -16,6 +17,7 @@ from homeassistant.const import (
 
 
 from .const import (
+    CONF_BIRTH_DATE,
     CONF_SMARTSCHOOL_DOMAIN
 )
 
@@ -35,9 +37,12 @@ def create_schema(entry, option=False):
         default_smartschool_domain = entry.data.get(CONF_SMARTSCHOOL_DOMAIN, "schoolname.smartschool.be")
         default_username = entry.data.get(CONF_USERNAME, "")
         default_password = entry.data.get(CONF_PASSWORD, "")
+        default_birth_date = entry.data.get(CONF_BIRTH_DATE, "")
     else:
         default_username = ""
         default_password = ""
+        default_smartschool_domain = ""
+        default_birth_date = ""
 
     data_schema = OrderedDict()
     data_schema[
@@ -49,9 +54,16 @@ def create_schema(entry, option=False):
     data_schema[
         vol.Required(CONF_PASSWORD, description="Password")
     ] = str
+    data_schema[
+        vol.Required(CONF_BIRTH_DATE, description="Date of Birth (YYYY-MM-DD)")
+    ] = str
 
     return data_schema
 
+def validate_date(value):
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        raise vol.Invalid("Date must be in YYYY-MM-DD format (e.g., 2025-06-01)")
+    return value
 
 class BaseSetup:
     async def test_setup(self, user_input):

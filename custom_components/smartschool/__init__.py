@@ -24,6 +24,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
+    CONF_BIRTH_DATE,
     CONF_SMARTSCHOOL_DOMAIN
 )
 
@@ -113,6 +114,7 @@ def register_services(hass, config_entry):
         smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
         username = config.get(CONF_USERNAME)
         password = config.get(CONF_PASSWORD)
+        birth_date = config.get(CONF_BIRTH_DATE)
 
 
     hass.services.async_register(DOMAIN, 'todo', handle_todo)

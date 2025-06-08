@@ -40,141 +40,23 @@ class HttpMethod(Enum):
     OPTIONS = 'OPTIONS'
     
 
-# TODO
-
-
+from .smartschool_api import (
+    Smartschool,
+    AppCredentials,
+    FutureTasks,
+)
 
 class ComponentSession(object):
     def __init__(self):
-        self.s = requests.Session()
-        self.s.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64; rv:137.0) Gecko/20100101 Firefox/137.0"
-        self.s.headers["x-alt-referer"] = "https://www2.telenet.be/residential/nl/mijn-telenet/"
-        self.s.headers["X-Requested-With"] = "XMLHttpRequest"
-        self.s.headers["Origin"] = "https://www2.telenet.be"
-        self.s.headers["Referrer"] = "https://www2.telenet.be"
-
-    def callTelenet(self, url, caller = "Not set", expectedStatusCode = 200, data = None, printResponse = False, method : HttpMethod  = HttpMethod.GET, allowRedirects = True):
-        try:
-            if method == HttpMethod.GET:
-                _LOGGER.debug(f"[{caller}] Calling GET {url}")
-                response = self.s.get(url,timeout=30, allow_redirects=allowRedirects)
-            elif method == HttpMethod.POST:
-                self.s.headers["Content-Type"] = "application/json;charset=UTF-8"
-                _LOGGER.debug(f"[{caller}] Calling POST {url} with data {data}")
-                response = self.s.post(url,data,timeout=30)
-            elif method == HttpMethod.PATCH:
-                self.s.headers["Content-Type"] = "application/json;charset=UTF-8"
-                _LOGGER.debug(f"[{caller}] Calling PATCH {url} with data: {data}")
-                response = self.s.patch(url,json=data,timeout=60)
-            elif method == HttpMethod.OPTIONS:
-                self.s.headers["Content-Type"] = "application/json;charset=UTF-8"
-                _LOGGER.debug(f"[{caller}] Calling OPTIONS {url} with data: {data}")
-                response = self.s.options(url,timeout=60)
-            _LOGGER.debug(f"[{caller}] http status code = {response.status_code} (expecting {expectedStatusCode})")
-            if printResponse:
-                _LOGGER.debug(f"[{caller}] Response: {response.text}")
-            if expectedStatusCode != None:
-                assert response.status_code == expectedStatusCode
-        except Exception as e:
-            _LOGGER.error(f"[{caller}]: Failed to call [{method}]({url}). Statuscode was {response.status_code}. Exception was {getattr(e, 'message', repr(e))}")
-        return response
+        self.session = None
+        self.creds = None
 
     
     @sleep_and_retry
     @limits(calls=1, period=5)
-    def login(self, username, password, smartschool_domain):
+    def login(self, username, password, smartschool_domain, birth_date):
         _LOGGER.info("Trying to login to Smartschool")
+        self.creds = AppCredentials(username, password, smartschool_domain, birth_date)
+        self.session = Smartschool.start(self.creds)
         return {}
 
-
-    def userdetails(self):
-        response = self.callTelenet("https://api.prd.telenet.be/ocapi/oauth/userdetails","userdetails", None)
-        return response.json()
-    
-    def customerdetails(self):
-        response = self.callTelenet("https://api.prd.telenet.be/ocapi/public/api/customer-service/v1/customers","customerdetails")
-        return response.json()
-
-    def telemeter(self):
-        response = self.callTelenet("https://api.prd.telenet.be/ocapi/public/?p=internetusage,internetusagereminder","telemeter")
-        return response.json()
-
-    def telemeter_product_details(self, url):
-        response = self.callTelenet(url,"telemeter_product_details")
-        return response.json()
-
-    def modemdetails(self, productIdentifier):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/resource-service/v1/modems?productIdentifier={productIdentifier}","modemdetails")
-        return response.json()
-    
-    def wifidetails(self, productIdentifier, modemMac):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/resource-service/v1/modems/{modemMac}/wireless-settings?withmetadata=true&withwirelessservice=true&productidentifier={productIdentifier}","wifidetails")
-        return response.json()
-    
-    def wifiStatus(self, productIdentifier, modemMac):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/resource-service/v1/modems/{modemMac}/wireless-status?productidentifier={productIdentifier}","wifiStatus")
-        return response.json()
-    
-    def urldetails(self, url):
-        response = self.callTelenet(url,"urldetails")
-        return response.json()
-    
-    def switchWifi(self,  wirelessEnabled: bool, productIdentifier: bool, modemMac, locationId):
-        # data = {"productIdentifier":productIdentifier,"homeSpotEnabled":homeSpotEnabled,"wirelessEnabled":"Yes","locationId":locationId,"patchOperations":[{"op":"replace","path":"/wirelessInterfaces/2.4GHZ/ssids/PRIMARY/active","value":wirelessEnabled},{"op":"replace","path":"/wirelessInterfaces/5GHZ/ssids/PRIMARY/active","value":wirelessEnabled}]}
-        if wirelessEnabled:
-            data = {"cos": "WSO_SHARING"}
-        else:
-            data = {"cos":"WSO_OFF"}
-        # self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/resource-service/v1/modems/{modemMac}/wireless-settings","optionswifi", 200, None, True, HttpMethod.OPTIONS)
-        # self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/resource-service/v1/modems/{modemMac}/wireless-settings","patchwifi", 200, data, True, HttpMethod.PATCH)
-        self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/resource-service/v1/modems/{modemMac}/wireless-status","patchwifi", 200, data, True, HttpMethod.PATCH)
-        return
-    
-    def reboot(self, modemMac):
-        self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/resource-service/v1/modems/{modemMac}/reboot","modem_general reboot", 200, None, True, HttpMethod.POST)
-        return
-    
-    def mobile(self):
-        response = self.callTelenet("https://api.prd.telenet.be/ocapi/public/?p=mobileusage","mobile")
-        return response.json()
-        
-    def planInfo(self):
-        response = self.callTelenet("https://api.prd.telenet.be/ocapi/public/api/product-service/v1/product-subscriptions?producttypes=PLAN","planInfo")
-        return response.json()
-    
-    def billCycles(self, productType, productIdentifier):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/billing-service/v1/account/products/{productIdentifier}/billcycle-details?producttype={productType}&count=3","billCycles")
-        return response.json()
-    
-    def productUsage(self, productType, productIdentifier,startDate, endDate):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/product-service/v1/products/{productType}/{productIdentifier}/usage?fromDate={startDate}&toDate={endDate}","productUsage")
-        return response.json()
-    
-    def productDailyUsage(self, productType, productIdentifier,startDate, endDate):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/product-service/v1/products/{productType}/{productIdentifier}/dailyusage?billcycle=CURRENT&fromDate={startDate}&toDate={endDate}","productUsage")
-        return response.json()
-
-    def productSubscriptions(self, productType):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/product-service/v1/product-subscriptions?producttypes={productType}","productSubscriptions")
-        return response.json()
-
-    def productService(self, productIdentifier, productType):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/product-service/v1/products/{productIdentifier}?producttype={productType.lower()}","productService")
-        return response.json()
-
-    def mobileUsage(self, productIdentifier):
-        response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/mobile-service/v3/mobilesubscriptions/{productIdentifier}/usages","mobileUsage")
-        return response.json()
-
-    def mobileBundleUsage(self, bundleIdentifier, lineIdentifier = None):
-        if lineIdentifier != None:
-            response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/mobile-service/v3/mobilesubscriptions/{bundleIdentifier}/usages?type=bundle&lineIdentifier={lineIdentifier}","mobileBundleUsage lineIdentifier")
-        else:
-            response = self.callTelenet(f"https://api.prd.telenet.be/ocapi/public/api/mobile-service/v3/mobilesubscriptions/{bundleIdentifier}/usages?type=bundle","mobileBundleUsage bundle")
-        return response.json()
-
-    def apiVersion2(self):
-        response = self.callTelenet("https://api.prd.telenet.be/ocapi/public/api/product-service/v1/product-subscriptions?producttypes=PLAN","apiVersion2", None)
-        if response.status_code == 200:
-            return True
-        return False

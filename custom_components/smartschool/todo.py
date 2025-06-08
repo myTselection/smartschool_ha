@@ -78,7 +78,7 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         _LOGGER.debug("Checklist entity added to hass: %s", self._list_id)
 
     async def async_update_todo_item(self, item: TodoItem) -> None:
-        _LOGGER.info("Updating todo item in '%s': %s", self._list_id, item)
+        _LOGGER.debug("Updating todo item in '%s': %s", self._list_id, item)
         items = self.coordinator.get_items(self._list_id)
         for idx, existing in enumerate(items):
             if existing.uid == item.uid:
