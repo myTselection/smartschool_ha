@@ -14,6 +14,11 @@ from homeassistant.const import (
     CONF_USERNAME
 )
 
+
+from .const import (
+    CONF_SMARTSCHOOL_DOMAIN
+)
+
 from . import DOMAIN, NAME
 from .utils import (check_settings)
 
@@ -27,7 +32,7 @@ def create_schema(entry, option=False):
 
     if option:
         # We use .get here incase some of the texts gets changed.
-        default_smartschool_domain = entry.data.get("smartschool_domain", "schoolname.smartschool.be")
+        default_smartschool_domain = entry.data.get(CONF_SMARTSCHOOL_DOMAIN, "schoolname.smartschool.be")
         default_username = entry.data.get(CONF_USERNAME, "")
         default_password = entry.data.get(CONF_PASSWORD, "")
     else:
@@ -36,7 +41,7 @@ def create_schema(entry, option=False):
 
     data_schema = OrderedDict()
     data_schema[
-        vol.Required("smartschool_domain", description="Smartschool domain")
+        vol.Required(CONF_SMARTSCHOOL_DOMAIN, description="Smartschool domain")
     ] = str
     data_schema[
         vol.Required(CONF_USERNAME, description="Username")
@@ -61,13 +66,13 @@ class BaseSetup:
         # This is what we really need.
         smartschool_domain = None
 
-        if smartschool_domain.get("smartschool_domain"):
-            smartschool_domain = user_input.get("smartschool_domain")
+        if user_input.get(CONF_SMARTSCHOOL_DOMAIN):
+            smartschool_domain = user_input.get(CONF_SMARTSCHOOL_DOMAIN)
         else:
             self._errors["base"] = "missing smartschool_domain"
         smartschool_domain = None
 
-        if user_input.get("username"):
+        if user_input.get(CONF_USERNAME):
             username = user_input.get(CONF_USERNAME)
         else:
             self._errors["base"] = "missing username"
@@ -75,7 +80,7 @@ class BaseSetup:
             
         password = None
 
-        if user_input.get("password"):
+        if user_input.get(CONF_PASSWORD):
             password = user_input.get(CONF_PASSWORD)
         else:
             self._errors["base"] = "missing password"
@@ -97,7 +102,7 @@ class ComponentFlowHandler(BaseSetup, config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             await self.test_setup(user_input)
-            return self.async_create_entry(title=f'{NAME} {user_input.get("username","")}', data=user_input)
+            return self.async_create_entry(title=f'{NAME} {user_input.get(CONF_USERNAME,"")}', data=user_input)
 
         return await self._show_config_form(user_input)
 

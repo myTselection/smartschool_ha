@@ -5,14 +5,26 @@ from pathlib import Path
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.core import HomeAssistant
 from homeassistant.const import Platform
+from .utils import *
 from homeassistant.const import (
     CONF_NAME,
     CONF_PASSWORD,
     CONF_RESOURCES,
     CONF_SCAN_INTERVAL,
-    CONF_USERNAME
+    CONF_USERNAME,
+    EVENT_HOMEASSISTANT_STOP,
+    Platform,
+)
+from homeassistant.core import (
+    HomeAssistant,
+    ServiceResponse,
+    SupportsResponse
+)
+from homeassistant.exceptions import HomeAssistantError
+
+from .const import (
+    CONF_SMARTSCHOOL_DOMAIN
 )
 
 manifestfile = Path(__file__).parent / 'manifest.json'
@@ -23,7 +35,7 @@ DOMAIN = manifest_data.get("domain")
 NAME = manifest_data.get("name")
 VERSION = manifest_data.get("version")
 ISSUEURL = manifest_data.get("issue_tracker")
-PLATFORMS = [Platform.TODO]
+PLATFORMS = [Platform.SENSOR, Platform.TODO]
 
 STARTUP = """
 -------------------------------------------------------------------
@@ -49,16 +61,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType):
         return True
 
     try:
-        await hass.config_entries.async_forward_entry(config, Platform.TODO)
+        await hass.config_entries.async_forward_entry(config, Platform.SENSOR)
         _LOGGER.info("Successfully added platform from the integration")
     except ValueError:
         pass
 
-    hass.async_create_task(
-        await hass.config_entries.flow.async_init(
+    await hass.config_entries.flow.async_init(
             DOMAIN, context={"source": config_entries.SOURCE_IMPORT}, data={}
         )
-    )
     return True
 
 async def async_update_options(hass: HomeAssistant, config_entry: ConfigEntry):
@@ -79,6 +89,7 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry):
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up component as config entry."""
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
+    config_entry.async_on_unload(config_entry.add_update_listener(async_update_options))
     _LOGGER.info(f"{DOMAIN} register_services")
     register_services(hass, config_entry)
     return True
@@ -99,9 +110,9 @@ def register_services(hass, config_entry):
         """Handle the service call."""
         
         config = config_entry.data
-        smartschool_domain = config.get("smartschool_domain")
-        username = config.get("username")
-        password = config.get("password")
+        smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
+        username = config.get(CONF_USERNAME)
+        password = config.get(CONF_PASSWORD)
 
 
     hass.services.async_register(DOMAIN, 'todo', handle_todo)
