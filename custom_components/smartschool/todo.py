@@ -4,6 +4,9 @@ from homeassistant.components.todo import (
     TodoListEntity,
     TodoListEntityFeature,
 )
+
+# https://developers.home-assistant.io/docs/core/entity/todo
+
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .coordinator import ComponentUpdateCoordinator
@@ -17,6 +20,8 @@ from .const import (
     CONF_REFRESH_INTERVAL
 )
 
+from .storage import ChecklistStatusStorage
+
 async def async_setup_entry(hass, config_entry, async_add_entities):
     refresh_interval = config_entry.options.get(CONF_REFRESH_INTERVAL, 30)
 
@@ -29,6 +34,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         async_add_entities(
             [ComponentTodoListEntity(hass, coordinator, list_name)]
         )
+    return True
+
 
 class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], TodoListEntity):
 
@@ -43,6 +50,8 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         self._attr_name = list_name
         self.list_name = list_name
         self.hass = hass
+        self._status_store = ChecklistStatusStorage(hass)
+        self._items = []
 
     @property
     def todo_items(self):
@@ -61,19 +70,6 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         ]
         return items
 
-    async def async_create_todo_item(self, item):
-        updates = self.get_item_updates(item)
-        await self.hass.data[DOMAIN].add_item(
-            item.summary,
-            updates = updates,
-            list_name = self.list_name
-        )
-        await self.coordinator.async_refresh()
-
-    async def async_delete_todo_items(self, uids):
-        for uid in uids:
-            await self.hass.data[DOMAIN].remove_item_by_id(uid, list_name = self.list_name)
-        await self.coordinator.async_refresh()
 
     async def async_update_todo_item(self, item):
         updates = self.get_item_updates(item)
@@ -83,6 +79,8 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
             list_name = self.list_name
         )
         await self.coordinator.async_refresh()
+
+
 
     def get_item_updates(self, item):
         updates = dict()
@@ -101,3 +99,27 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
             "checked_items": [item[ATTR_NAME] for item in self.coordinator.data if item[ATTR_CHECKED]],
             "unchecked_items": [item[ATTR_NAME] for item in self.coordinator.data if not item[ATTR_CHECKED]]
         }
+
+
+
+    async def async_added_to_hass(self):
+        await self._status_store.async_load()
+        self._items = await self._load_external_items()
+
+
+    async def _load_external_items(self):
+        # Replace this with your actual external source
+        external_items = [
+            {"uid": "abc123", "summary": "Update server"},
+            {"uid": "def456", "summary": "Order backup batteries"},
+        ]
+
+        merged = []
+        for item in external_items:
+            status = self._status_store.get_status(item["uid"])
+            merged.append(TodoItem(
+                uid=item["uid"],
+                summary=item["summary"],
+                status=TodoItemStatus(status)
+            ))
+        return merged
