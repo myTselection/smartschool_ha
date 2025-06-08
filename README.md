@@ -36,6 +36,7 @@ After adding Smartschool account a sensor and 4 Todo lists will be added.
 
 - Todo lists:
   - Separate Todo list for "Toetsen", "Taken", "Meebrengen" and "Volgende"
+  - Each Todo list will contain the username between brackets to distinct the list of different users (if multiple accounts are linked)
   - Volgende:
     - overview of all "Taken", "Toetsen", "Meebrengen" for next planned lesson (next day or next day after weekend/holiday)
   - Meebrengen:
