@@ -73,4 +73,4 @@ logger:
 
 ## Example usage:
 
-TODO
+<p align="left"><img src="./Example1.png"/></p>
