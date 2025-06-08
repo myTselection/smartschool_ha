@@ -35,6 +35,7 @@ After adding Smartschool account a sensor and 4 Todo lists will be added.
   - currently only showing last update date
 
 - Todo lists:
+  - When checking items in Home Assistant as completed, this will not be reflected into Smartschool. Only future tasks are fetched from Smartschool but no updates from Home Assistant are sent towards Smartschool.
   - Separate Todo list for "Toetsen", "Taken", "Meebrengen" and "Volgende"
   - Each Todo list will contain the username between brackets to distinct the list of different users (if multiple accounts are linked)
   - Volgende:
