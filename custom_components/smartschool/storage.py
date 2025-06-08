@@ -27,3 +27,8 @@ class ChecklistStatusStorage:
     def delete_status(self, list_id: str, uid: str):
         if list_id in self._data:
             self._data[list_id].pop(uid, None)
+
+    def remove_unused_items(self, list_id: str, valid_uids: set):
+        # Remove anything not in the latest data set
+        if list_id in self._data:
+            self._data[list_id] = {k: v for k, v in self._data[list_id].items() if k in valid_uids}

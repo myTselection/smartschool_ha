@@ -44,6 +44,7 @@ from .smartschool_api import (
     Smartschool,
     AppCredentials,
     FutureTasks,
+    SmartschoolLessons
 )
 
 class ComponentSession(object):
@@ -64,3 +65,9 @@ class ComponentSession(object):
     @limits(calls=1, period=5)
     def getFutureTasks(self):
         return FutureTasks()
+
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    def getAgenda(self, timestamp_to_use: datetime | None = None):
+        agenda = list(SmartschoolLessons(timestamp_to_use=timestamp_to_use))
+        return agenda

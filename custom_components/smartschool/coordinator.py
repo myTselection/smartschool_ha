@@ -10,7 +10,13 @@ from homeassistant.const import (
 )
 from .const import (
     CONF_BIRTH_DATE,
-    CONF_SMARTSCHOOL_DOMAIN
+    CONF_SMARTSCHOOL_DOMAIN,
+    LIST_TAKEN,
+    LIST_TOETSEN,
+    LIST_MEEBRENGEN,
+    LIST_VOLGENDE,
+    TASK_LABEL_TAAK,
+    TASK_LABEL_TOETS
 )
 
 from .storage import ChecklistStatusStorage
@@ -41,17 +47,6 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         await self.async_refresh()
 
     async def _async_update_data(self):
-        # Replace this with real external data source
-        # external_data = {
-        #     "devops": [
-        #         {"uid": "abc", "summary": "Deploy release"},
-        #         {"uid": "def", "summary": "Restart server"},
-        #     ],
-        #     "household": [
-        #         {"uid": "xyz", "summary": "Clean garage"},
-        #     ]
-        # }
-
         # Structure:
         # {
         #     "Taak": [
@@ -88,86 +83,83 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
             future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())
             _LOGGER.debug(f"{DOMAIN} external data: {future_tasks}")
+            
+            agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda())
             _LOGGER.debug(f"{DOMAIN} update login completed")
 
             self._lastupdate = datetime.now()
 
+        current_list_taken = f"{LIST_TAKEN} ({self._username})"
+        current_list_toetsen = f"{LIST_TOETSEN} ({self._username})"
+        current_list_meebrengen = f"{LIST_MEEBRENGEN} ({self._username})"
+        current_list_volgende = f"{LIST_VOLGENDE} ({self._username})"
         new_lists = {
-            "taken": [],
-            "toetsen": [],
-            "meebrengen": []
+            current_list_taken: [],
+            current_list_toetsen: [],
+            current_list_meebrengen: [],
+            current_list_volgende: []
         }
 
-        try:
-            for day in future_tasks.days:
-                for course in day.courses:
-                    for task in course.items.tasks:
-                        if task.label == "Taak":
-                            list_id = "taken"
-                        elif task.label == "Toets":
-                            list_id = "toetsen"
-                        else:
-                            list_id = "meebrengen"
-                        
-                        status = self._status_store.get_status(self._unique_user_id, task.assignmentID)
-                        new_lists[list_id].append(TodoItem(
+        valid_uids = set()
+
+        if len(agenda) > 0:
+            next_schoolday = agenda[0].date
+            _LOGGER.debug(f"{DOMAIN} next schoolday: {next_schoolday}")
+        
+
+        for day in future_tasks.days:
+            for course in day.courses:
+                for task in course.items.tasks:
+                    
+                    # course_name = course.course_title.split(" - ")[1] if " - " in course.course_title else course.course_title
+                    course_name = task.course
+                    lesson_hour = course.course_title.split(" - ")[0] if " - " in course.course_title else ""
+                    summary = f"{course_name} ({lesson_hour}e u)"
+                    description = task.description
+                    if task.label == TASK_LABEL_TAAK:
+                        list_id = current_list_taken
+                    elif task.label == TASK_LABEL_TOETS:
+                        list_id = current_list_toetsen
+                    else:
+                        list_id = current_list_meebrengen
+                        description = f"{course_name} ({lesson_hour}e u)"
+                        summary = task.description
+
+                    valid_uids.add(task.assignmentID)
+                    status = self._status_store.get_status(self._unique_user_id, task.assignmentID)
+                    new_lists[list_id].append(TodoItem(
+                        uid=task.assignmentID,
+                        summary=summary,
+                        status=TodoItemStatus(status),
+                        description=description,
+                        due=task.date
+                    ))
+                    
+                    if next_schoolday and task.date == next_schoolday:
+                        new_lists[current_list_volgende].append(TodoItem(
                             uid=task.assignmentID,
-                            summary=course.course_title,
+                            summary=f"{task.label}: {summary}",
                             status=TodoItemStatus(status),
-                            description=task.description
-                            # due=task.date
+                            description=description,
+                            due=task.date
                         ))
 
-        except Exception as e:
-            _LOGGER.error(f"Error future tasks: {e}")
+        if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
+            self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
 
 
-            
-        # for list_id, items in future_tasks.items():
-        #     todo_items = []
-        #     for item in items:
-        #         status = self._status_store.get_status(list_id, item["uid"])
-        #         todo_items.append(TodoItem(
-        #             uid=item["uid"],
-        #             summary=item["summary"],
-        #             status=TodoItemStatus(status)
-        #         ))
-        #     new_lists[list_id] = todo_items
+
 
         self._lists = new_lists
         return self._lists
 
-    # async def _async_update_data(self):
-    #     # code, items = await self.hass.data[DOMAIN].get_detailed_items(self.list_name)
-    #     items = [{"id" : "id1",
-    #               "name" : "name1",
-    #               "list" : "list1",
-    #               "checked" : True,
-    #               "notes" : "notes1"},
-    #               {"id" : "id2",
-    #               "name" : "name2",
-    #               "list" : "list1",
-    #               "checked" : False,
-    #               "notes" : "notes2"},
-    #               {"id" : "id3",
-    #               "name" : "name3",
-    #               "list" : "list3",
-    #               "checked" : True,
-    #               "notes" : "notes3"},
-    #               {"id" : "id4",
-    #               "name" : "test2item",
-    #               "list" : "Test2",
-    #               "checked" : False,
-    #               "notes" : "notes3",
-    #               "duedate": datetime(2025, 6, 10, 18, 0)}
-    #     ]
-    #     return items
     def get_items(self, list_id):
         return self._lists.get(list_id, [])
 
     async def update_status(self, unique_user_id, uid, status):
         self._status_store.set_status(unique_user_id, uid, status)
         await self._status_store.async_save()
+        await self.async_refresh()
 
     async def delete_status(self, unique_user_id, uid):
         self._status_store.delete_status(unique_user_id, uid)
@@ -175,6 +167,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
     async def remove_list(self, list_id: str, unique_user_id: str):
         """Remove a to-do list and its saved statuses."""
+        _LOGGER.info("Removing list %s for user %s", list_id, unique_user_id)
         if list_id in self._lists:
             del self._lists[list_id]
         if unique_user_id in self._status_store._data:
