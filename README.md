@@ -35,9 +35,12 @@ After adding Smartschool account a sensor and 4 Todo lists will be added.
   - currently only showing last update date
 
 - Todo lists:
-  - Separate Todo list for Toetsen, Taken, Meebrengen and Volgende
+  - Separate Todo list for "Toetsen", "Taken", "Meebrengen" and "Volgende"
   - Volgende:
-     - overview of all "Taken", "Toetsen", "Meebrengen" for next planned lesson (next day or next day after weekend/holiday)
+    - overview of all "Taken", "Toetsen", "Meebrengen" for next planned lesson (next day or next day after weekend/holiday)
+  - Meebrengen:
+    - within list "Meebrengen", the title will be the item to bring, while the description will be the course info
+    - for other lists, the title contains the course name and the description contains the details of the action
   - The Todo items can be checked, same items appearing in list "Volgende" will also be checked in specific Todo lists
   - Only items left todo are listed, past items will automatically be removed of all Todo lists
 
