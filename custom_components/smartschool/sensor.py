@@ -139,22 +139,17 @@ class ComponentUserSensor(Entity):
         self._data = data
         self._hass = hass
         self._last_update = None
-        self._state = "TEST"
-        self._school = "SCHOOL"
+        self._school = self._data._smartschool_domain.replace(".smartschool.be", "")
         self._username = self._data._username
 
     @property
     def state(self):
         """Return the state of the sensor."""
-        return self._state
+        return self._last_update.strftime("%Y-%m-%d %H:%M:%S")
 
     async def async_update(self):
         await self._data.update()
         self._last_update =  self._data._lastupdate
-        self._school = None
-        
-        self._state = "TEST UPDATED"
-        self._school = "SCHOOL UPDATED"
         
         
     async def async_will_remove_from_hass(self):
@@ -187,8 +182,7 @@ class ComponentUserSensor(Entity):
             "last update": self._last_update,
             "username": self._username,
             "school": self._school,
-            "entity_picture": "https://raw.githubusercontent.com/myTselection/smartschool_ha/master/icon.png",
-            "state": self._state
+            "entity_picture": "https://raw.githubusercontent.com/myTselection/smartschool_ha/master/icon.png"
         }
 
     @property
