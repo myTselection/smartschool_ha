@@ -1,4 +1,7 @@
 from homeassistant.helpers.storage import Store
+import logging
+from . import DOMAIN
+_LOGGER = logging.getLogger(DOMAIN)
 
 class ChecklistStatusStorage:
     def __init__(self, hass):
@@ -12,7 +15,9 @@ class ChecklistStatusStorage:
         await self._store.async_save(self._data)
 
     def get_status(self, list_id: str, uid: str) -> str:
-        return self._data.get(list_id, {}).get(uid, "needs_action")
+        status= self._data.get(list_id, {}).get(uid, "needs_action")
+        _LOGGER.debug("get_status %s %s %s", list_id, uid, status)
+        return status
 
     def set_status(self, list_id: str, uid: str, status: str):
         if list_id not in self._data:

@@ -11,14 +11,14 @@ _LOGGER = logging.getLogger(DOMAIN)
 
 class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
-    def __init__(self, hass, config_entry, list_name, refresh_interval):
-        super().__init__(hass, _LOGGER, config_entry = config_entry, name = f"{DOMAIN} {list_name}", update_interval = timedelta(minutes = refresh_interval))
-        self.list_name = list_name
+    def __init__(self, hass, config_entry, refresh_interval):
+        super().__init__(hass, _LOGGER, config_entry = config_entry, name = f"{DOMAIN} ChecklistCoordinator", update_interval = timedelta(minutes = refresh_interval))
         self._status_store = ChecklistStatusStorage(hass)
         self._lists = {}  # list_id -> list[TodoItem]
         self.hass = hass
 
     async def async_initialize(self):
+        
         await self._status_store.async_load()
         await self.async_refresh()
 
@@ -84,3 +84,11 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
     async def delete_status(self, list_id, uid):
         self._status_store.delete_status(list_id, uid)
         await self._status_store.async_save()
+
+    async def remove_list(self, list_id: str):
+        """Remove a to-do list and its saved statuses."""
+        if list_id in self._lists:
+            del self._lists[list_id]
+        if list_id in self._status_store._data:
+            del self._status_store._data[list_id]
+            await self._status_store.async_save()
