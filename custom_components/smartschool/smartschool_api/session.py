@@ -57,11 +57,11 @@ class Smartschool:
     # Remove already_logged_on flag
     # already_logged_on: bool = field(init=False, default=None) # REMOVED
 
-    # def __post_init__(self) -> None:
+    def __post_init__(self) -> None:
         
-        # self._session.cookies = LWPCookieJar(self.cookie_file)
-        # with contextlib.suppress(FileNotFoundError):
-        #     self._session.cookies.load(ignore_discard=True)
+        self._session.cookies = LWPCookieJar(self.cookie_file)
+        with contextlib.suppress(FileNotFoundError):
+            self._session.cookies.load(ignore_discard=True)
             
         # # Load cookies using LWPCookieJar
         # self.cookiejar = http.cookiejarLWPCookieJar(self.cookie_file)
@@ -132,7 +132,7 @@ class Smartschool:
             elif check_resp.status_code == 200:
                  logger.debug("Session appears to be valid based on GET /. Skipping login.")
                  # Save cookies just in case they were updated by the check
-                #  self._session.cookies.save(ignore_discard=True)
+                 self._session.cookies.save(ignore_discard=True)
                  return # Session is valid
             else:
                  logger.warning(f"Session check GET / resulted in unexpected state: Status {check_resp.status_code}, URL {final_url}")
@@ -168,7 +168,7 @@ class Smartschool:
                 # GET /login redirected somewhere else (likely '/', indicating already logged in)
                 logger.info(f"GET /login redirected to {final_login_get_url}. Assuming session is valid and complete.")
                 # We trust this redirect indicates success. Save cookies and return.
-                # self._session.cookies.save(ignore_discard=True)
+                self._session.cookies.save(ignore_discard=True)
                 return # Assume success based on redirect
 
             # 3. Final verification after login/verification attempt
@@ -181,7 +181,7 @@ class Smartschool:
                 raise SmartSchoolAuthenticationError(f"Authentication failed, status {final_resp.status_code} at {final_resp.url}") # Corrected casing
             else:
                 logger.debug("Login/Verification process completed successfully after _do_login/_complete_verification.")
-                # self._session.cookies.save(ignore_discard=True)
+                self._session.cookies.save(ignore_discard=True)
                 # # After request
                 # for cookie in self._session.cookies.jar:
                 #     self.cookiejar.set_cookie(http.cookiejar.Cookie(
@@ -222,7 +222,7 @@ class Smartschool:
             check_resp.raise_for_status()
             if check_resp.status_code == 200 and not str(check_resp.url).endswith(("/login", "/account-verification", "/2fa")):
                 logger.debug("Final authentication check successful.")
-                # self._session.cookies.save(ignore_discard=True) # Save potentially updated cookies
+                self._session.cookies.save(ignore_discard=True) # Save potentially updated cookies
                 return True
             else:
                 logger.error(f"Final authentication check failed: Status {check_resp.status_code}, URL {check_resp.url}")
