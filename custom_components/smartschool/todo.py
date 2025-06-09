@@ -13,7 +13,7 @@ from .coordinator import ComponentUpdateCoordinator
 from . import DOMAIN
 
 from .const import (
-    CONF_BIRTH_DATE,
+    CONF_MFA,
     CONF_SMARTSCHOOL_DOMAIN,
     LIST_TAKEN,
     LIST_TOETSEN,

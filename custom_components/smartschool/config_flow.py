@@ -17,7 +17,7 @@ from homeassistant.const import (
 
 
 from .const import (
-    CONF_BIRTH_DATE,
+    CONF_MFA,
     CONF_SMARTSCHOOL_DOMAIN
 )
 
@@ -37,12 +37,12 @@ def create_schema(entry, option=False):
         default_smartschool_domain = entry.data.get(CONF_SMARTSCHOOL_DOMAIN, "schoolname.smartschool.be")
         default_username = entry.data.get(CONF_USERNAME, "")
         default_password = entry.data.get(CONF_PASSWORD, "")
-        default_birth_date = entry.data.get(CONF_BIRTH_DATE, "")
+        default_mfa = entry.data.get(CONF_MFA, "")
     else:
         default_username = ""
         default_password = ""
         default_smartschool_domain = ""
-        default_birth_date = ""
+        default_mfa = ""
 
     data_schema = OrderedDict()
     data_schema[
@@ -55,15 +55,10 @@ def create_schema(entry, option=False):
         vol.Required(CONF_PASSWORD, description="Password")
     ] = str
     data_schema[
-        vol.Required(CONF_BIRTH_DATE, description="Date of Birth (YYYY-MM-DD)")
+        vol.Required(CONF_MFA, description="Google Authenticator 2FA secret or date of birth (YYYY-MM-DD) for child account")
     ] = str
 
     return data_schema
-
-def validate_date(value):
-    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
-        raise vol.Invalid("Date must be in YYYY-MM-DD format (e.g., 2025-06-01)")
-    return value
 
 class BaseSetup:
     async def test_setup(self, user_input):
@@ -96,6 +91,13 @@ class BaseSetup:
             password = user_input.get(CONF_PASSWORD)
         else:
             self._errors["base"] = "missing password"
+
+        mfa = None
+
+        if user_input.get(CONF_MFA):
+            mfa = user_input.get(CONF_MFA)
+        else:
+            self._errors["base"] = "missing mfa"
             
 
 

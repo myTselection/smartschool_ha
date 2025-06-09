@@ -9,7 +9,7 @@ from homeassistant.const import (
     CONF_USERNAME
 )
 from .const import (
-    CONF_BIRTH_DATE,
+    CONF_MFA,
     CONF_SMARTSCHOOL_DOMAIN,
     LIST_TAKEN,
     LIST_TOETSEN,
@@ -31,17 +31,17 @@ _LOGGER = logging.getLogger(DOMAIN)
 class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, config_entry, refresh_interval):
-        super().__init__(hass, _LOGGER, config_entry = config_entry, name = f"{DOMAIN} ChecklistCoordinator", update_interval = timedelta(minutes = refresh_interval))
-        self._status_store = ChecklistStatusStorage(hass)
-        self._lists = {}  # list_id -> list[TodoItem]
-        self._hass = hass
-        self._session = ComponentSession()
         config = config_entry.data
         self._username = config.get(CONF_USERNAME)
         self._password = config.get(CONF_PASSWORD)
         self._smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
-        self._birth_date = config.get(CONF_BIRTH_DATE)
+        self._mfa = config.get(CONF_MFA)
         self._unique_user_id = f"{self._username}_{self._smartschool_domain}"
+        super().__init__(hass, _LOGGER, config_entry = config_entry, name = f"{DOMAIN} ChecklistCoordinator {self._unique_user_id}", update_interval = timedelta(minutes = refresh_interval))
+        self._status_store = ChecklistStatusStorage(hass)
+        self._lists = {}  # list_id -> list[TodoItem]
+        self._hass = hass
+        self._session = ComponentSession()
         self._agenda = None
         
         #  🇫🇷🇳🇱✝️🌎🎼🏛️🏺📜🧮🟰🏀🎨🤯🚸
@@ -73,12 +73,12 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
 
-        _LOGGER.debug(f"{DOMAIN} ComponentUpdateCoordinator update started, username: {self._username}, smartschool_domain: {self._smartschool_domain}, birth_date: {self._birth_date}")
+        _LOGGER.debug(f"{DOMAIN} ComponentUpdateCoordinator update started, username: {self._username}, smartschool_domain: {self._smartschool_domain}, mfa: *******")
         if not(self._session):
             self._session = ComponentSession()
 
         if self._session:
-            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._birth_date))
+            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._mfa))
             assert self._userdetails is not None
 
             self._future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())

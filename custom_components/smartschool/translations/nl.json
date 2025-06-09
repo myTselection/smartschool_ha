@@ -1,54 +1,52 @@
 {
     "config": {
-        "title": "Smartschool",
         "step": {
             "user": {
-                "description": "Setup a Smartschool integration, username and password are required.",
+                "description": "Koppel met Smartschool, gebruikersnaam, wachtwoord en geboortedatum (of Google Authenticator 2FA geheimcode) zijn vereist.",
                 "data": {
-                    "smartschool_domain": "Smartschool domain",
-                    "username": "Username",
-                    "password": "Password"
+                    "smartschool_domain": "Smartschool domain (bv: school.smartschool.be)",
+                    "username": "Gebruikersnaam",
+                    "password": "Wachtwoord",
+                    "mfa": "Google Authenticator 2FA geheimcode of geboortedatum (YYYY-MM-DD) voor kind account"
                 }
             },
             "edit": {
-                "description": "Edit a Smartschool integration, username and password are required.",
+                "description": "Bewerk Smartschool integratie.",
                 "data": {
-                    "smartschool_domain": "Smartschool domain",
-                    "username": "Username",
-                    "password": "Password"
+                    "smartschool_domain": "Smartschool domain (bv: school.smartschool.be)",
+                    "username": "Gebruikersnaam",
+                    "password": "Wachtwoord",
+                    "mfa": "Google Authenticator 2FA geheimcode of geboortedatum (YYYY-MM-DD) voor kind account"
                 }
             }
 
         },
         "error": {
-            "missing username": "Please provide a valid Smartschool username",
-            "missing password": "Please provide a valid Smartschool password",
-            "missing data options handler": "Option handler failed",
-            "no_valid_settings": "No valid settings, provide username, password in ha config."
+            "missing username": "Gelieve een geldige gebruikersnaam op te geven van Smartschool",
+            "missing password": "Gelieve een geldig wachtoord op te geven voor Smartschool",
+            "missing mfa": "Gelieve een geldige geboortedatum of Google Authenticator 2FA geheimcode op te geven voor Smartschool",
+            "missing data options handler": "Fout bij het verwerken van de opties",
+            "no_valid_settings": "Ongeldige configuratie, gelieve gebruikersnaam, wachtwoord en multifactor authenticatie op te geven."
         }
     },
     "options": {
         "step": {
             "edit": {
-                "description": "Edit setup a Smartschool integration, username and password are required.",
+                "description": "Bewerk Smartschool integratie.",
                 "data": {
-                    "smartschool_domain": "Smartschool domain",
-                    "username": "Username",
-                    "password": "Password"
+                    "smartschool_domain": "Smartschool domain (bv: school.smartschool.be)",
+                    "username": "Gebruikersnaam",
+                    "password": "Wachtwoord",
+                    "mfa": "Google Authenticator 2FA geheimcode of geboortedatum (YYYY-MM-DD) voor kind account"
                 }
             }
         },
         "error": {
-            "missing username": "Please provide a valid Smartschool username",
-            "missing password": "Please provide a valid Smartschool password",
-            "missing data options handler": "Option handler failed",
-            "no_valid_settings": "No valid settings, provide username, password in ha config."
-        }
-    },
-    "services": {
-        "todo": {
-            "name": "todo",
-            "description": "Todo"
+            "missing username": "Gelieve een geldige gebruikersnaam op te geven van Smartschool",
+            "missing password": "Gelieve een geldig wachtoord op te geven voor Smartschool",
+            "missing mfa": "Gelieve een geldige geboortedatum of Google Authenticator 2FA geheimcode op te geven voor Smartschool",
+            "missing data options handler": "Fout bij het verwerken van de opties",
+            "no_valid_settings": "Ongeldige configuratie, gelieve gebruikersnaam, wachtwoord en multifactor authenticatie op te geven."
         }
     }
 }

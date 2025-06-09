@@ -1,5 +1,5 @@
 CONF_SMARTSCHOOL_DOMAIN = "smartschool_domain"
-CONF_BIRTH_DATE = "birth_date"
+CONF_MFA = "mfa"
 
 
 LIST_TAKEN = "Taken"

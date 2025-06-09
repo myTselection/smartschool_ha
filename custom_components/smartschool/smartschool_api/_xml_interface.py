@@ -75,7 +75,8 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
     def _xml(self):
         with contextlib.suppress(KeyError):
             return self._get_from_cache()
-
+        
+        # print(f"Request: {self._url} : {self._construct_command()}")
         response = session.post(
             self._url,
             data={
@@ -85,6 +86,7 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
                 "X-Requested-With": "XMLHttpRequest",
             },
         )
+        # print(f"Response: {response.text}")
 
         root = ET.fromstring(response.text)
 

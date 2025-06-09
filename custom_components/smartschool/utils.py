@@ -55,9 +55,9 @@ class ComponentSession(object):
     
     @sleep_and_retry
     @limits(calls=1, period=5)
-    def login(self, username, password, smartschool_domain, birth_date):
+    def login(self, username, password, smartschool_domain, mfa):
         _LOGGER.info("Trying to login to Smartschool")
-        self.creds = AppCredentials(username, password, smartschool_domain, birth_date)
+        self.creds = AppCredentials(username, password, smartschool_domain, mfa)
         self.session = Smartschool.start(self.creds)
         return {}
 

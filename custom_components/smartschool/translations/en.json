@@ -1,21 +1,22 @@
 {
     "config": {
-        "title": "Smartschool",
         "step": {
             "user": {
-                "description": "Setup a Smartschool integration, username and password are required.",
+                "description": "Link a Smartschool account, username, password and birth date (or Google Authenticator 2FA secret) are required.",
                 "data": {
-                    "smartschool_domain": "Smartschool domain",
+                    "smartschool_domain": "Smartschool domain (eg: school.smartschool.be)",
                     "username": "Username",
-                    "password": "Password"
+                    "password": "Password",
+                    "mfa": "Google Authenticator 2FA secret or date of birth (YYYY-MM-DD) for child account"
                 }
             },
             "edit": {
                 "description": "Edit a Smartschool integration, username and password are required.",
                 "data": {
-                    "smartschool_domain": "Smartschool domain",
+                    "smartschool_domain": "Smartschool domain (eg: school.smartschool.be)",
                     "username": "Username",
-                    "password": "Password"
+                    "password": "Password",
+                    "mfa": "Google Authenticator 2FA secrete or date of birth (YYYY-MM-DD) for child account"
                 }
             }
 
@@ -23,32 +24,29 @@
         "error": {
             "missing username": "Please provide a valid Smartschool username",
             "missing password": "Please provide a valid Smartschool password",
+            "missing mfa": "Please provide a valid Smartschool date of birth or Google Authenticator 2FA secret",
             "missing data options handler": "Option handler failed",
-            "no_valid_settings": "No valid settings, provide username, password in ha config."
+            "no_valid_settings": "No valid settings, provide username, password and mfa in ha config."
         }
     },
     "options": {
         "step": {
             "edit": {
-                "description": "Edit setup a Smartschool integration, username and password are required.",
+                "description": "Edit a Smartschool account, username, password and birth date (or Google Authenticator 2FA secret) are required.",
                 "data": {
-                    "smartschool_domain": "Smartschool domain",
+                    "smartschool_domain": "Smartschool domain (eg: school.smartschool.be)",
                     "username": "Username",
-                    "password": "Password"
+                    "password": "Password",
+                    "mfa": "Google Authenticator 2FA secrete or date of birth (YYYY-MM-DD) for child account"
                 }
             }
         },
         "error": {
             "missing username": "Please provide a valid Smartschool username",
             "missing password": "Please provide a valid Smartschool password",
+            "missing mfa": "Please provide a valid Smartschool date of birth or Google Authenticator 2FA secret",
             "missing data options handler": "Option handler failed",
-            "no_valid_settings": "No valid settings, provide username, password in ha config."
-        }
-    },
-    "services": {
-        "todo": {
-            "name": "todo",
-            "description": "Todo"
+            "no_valid_settings": "No valid settings, provide username, password and mfa in ha config."
         }
     }
 }

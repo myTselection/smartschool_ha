@@ -76,16 +76,16 @@ class SmartschoolLessons(AgendaPoster):
             dt_to_use = datetime.combine(dt_to_use, datetime.min.time())
 
         now_ts = dt_to_use.timestamp()
-        in_5_days_ts = now_ts + 5 * 24 * 3600
+        in_20_days_ts = now_ts + 20 * 24 * 3600
 
         return {
             "startDateTimestamp": now_ts,  # Use the calculated timestamp
-            "endDateTimestamp": in_5_days_ts, # Use the calculated timestamp
+            "endDateTimestamp": in_20_days_ts, # Use the calculated timestamp
             "filterType": "false",
             "filterID": "false",
             "gridType": "1",
             "classID": "0",
-            "endDateTimestampOld": in_5_days_ts, # Use the calculated timestamp
+            "endDateTimestampOld": in_20_days_ts, # Use the calculated timestamp
             "forcedTeacher": "0",
             "forcedClass": "0",
             "forcedClassroom": "0",

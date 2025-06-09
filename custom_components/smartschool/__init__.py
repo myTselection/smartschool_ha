@@ -24,7 +24,7 @@ from homeassistant.core import (
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
-    CONF_BIRTH_DATE,
+    CONF_MFA,
     CONF_SMARTSCHOOL_DOMAIN
 )
 
@@ -36,7 +36,8 @@ DOMAIN = manifest_data.get("domain")
 NAME = manifest_data.get("name")
 VERSION = manifest_data.get("version")
 ISSUEURL = manifest_data.get("issue_tracker")
-PLATFORMS = [Platform.SENSOR, Platform.TODO]
+# PLATFORMS = [Platform.SENSOR, Platform.TODO]
+PLATFORMS = [Platform.TODO]
 
 STARTUP = """
 -------------------------------------------------------------------
@@ -92,7 +93,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
     config_entry.async_on_unload(config_entry.add_update_listener(async_update_options))
     _LOGGER.info(f"{DOMAIN} register_services")
-    register_services(hass, config_entry)
+    # register_services(hass, config_entry)
     return True
 
 
@@ -114,7 +115,7 @@ def register_services(hass, config_entry):
         smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
         username = config.get(CONF_USERNAME)
         password = config.get(CONF_PASSWORD)
-        birth_date = config.get(CONF_BIRTH_DATE)
+        mfa = config.get(CONF_MFA)
 
 
     hass.services.async_register(DOMAIN, 'todo', handle_todo)

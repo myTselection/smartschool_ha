@@ -18,7 +18,7 @@ from homeassistant.const import (
     CONF_USERNAME
 )
 from .const import (
-    CONF_BIRTH_DATE,
+    CONF_MFA,
     CONF_SMARTSCHOOL_DOMAIN
 )
 
@@ -31,7 +31,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Required(CONF_SMARTSCHOOL_DOMAIN): cv.string,
-        vol.Required(CONF_BIRTH_DATE): cv.string,
+        vol.Required(CONF_MFA): cv.string,
     }
 )
 
@@ -43,7 +43,7 @@ async def dry_setup(hass, config_entry, async_add_devices):
     username = config.get(CONF_USERNAME)
     password = config.get(CONF_PASSWORD)
     smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
-    birth_date = config.get(CONF_BIRTH_DATE)
+    mfa = config.get(CONF_MFA)
 
     check_settings(config, hass)
     sensors = []
@@ -52,7 +52,7 @@ async def dry_setup(hass, config_entry, async_add_devices):
         username,
         password,
         smartschool_domain,
-        birth_date,
+        mfa,
         async_get_clientsession(hass),
         hass
     )
@@ -91,11 +91,11 @@ async def async_remove_entry(hass, config_entry):
         
 
 class ComponentData:
-    def __init__(self, username, password, smartschool_domain, birth_date, client, hass):
+    def __init__(self, username, password, smartschool_domain, mfa, client, hass):
         self._username = username
         self._password = password
         self._smartschool_domain = smartschool_domain
-        self._birth_date = birth_date
+        self._mfa = mfa
         self._client = client
         self._hass = hass
         self._session = ComponentSession()
@@ -109,7 +109,7 @@ class ComponentData:
             self._session = ComponentSession()
 
         if self._session:
-            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._birth_date))
+            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._mfa))
             assert self._userdetails is not None
             _LOGGER.debug(f"{NAME} update login completed")
 
