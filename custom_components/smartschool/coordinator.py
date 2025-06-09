@@ -40,6 +40,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
         self._birth_date = config.get(CONF_BIRTH_DATE)
         self._unique_user_id = f"{self._username}_{self._smartschool_domain}"
+        self._agenda = None
 
     async def async_initialize(self):
         
@@ -81,14 +82,19 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._birth_date))
             assert self._userdetails is not None
 
-            future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())
-            _LOGGER.debug(f"{DOMAIN} external data: {future_tasks}")
+            self._future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())
+            _LOGGER.debug(f"{DOMAIN} external data: {self._future_tasks}")
             
-            agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda())
+            self._agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda())
             _LOGGER.debug(f"{DOMAIN} update login completed")
 
             self._lastupdate = datetime.now()
 
+        await self._async_local_refresh_data()
+        return self._lists
+    
+    
+    async def _async_local_refresh_data(self):        
         current_list_taken = f"{LIST_TAKEN} ({self._username})"
         current_list_toetsen = f"{LIST_TOETSEN} ({self._username})"
         current_list_meebrengen = f"{LIST_MEEBRENGEN} ({self._username})"
@@ -102,12 +108,12 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
         valid_uids = set()
 
-        if len(agenda) > 0:
-            next_schoolday = agenda[0].date
+        if len(self._agenda) > 0:
+            next_schoolday = self._agenda[0].date
             _LOGGER.debug(f"{DOMAIN} next schoolday: {next_schoolday}")
         
 
-        for day in future_tasks.days:
+        for day in self._future_tasks.days:
             for course in day.courses:
                 for task in course.items.tasks:
                     
@@ -146,10 +152,6 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
             self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
-
-
-
-
         self._lists = new_lists
         return self._lists
 
@@ -159,7 +161,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
     async def update_status(self, unique_user_id, uid, status):
         self._status_store.set_status(unique_user_id, uid, status)
         await self._status_store.async_save()
-        await self.async_refresh()
+        await self._async_local_refresh_data()
 
     async def delete_status(self, unique_user_id, uid):
         self._status_store.delete_status(unique_user_id, uid)
