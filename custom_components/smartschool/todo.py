@@ -42,8 +42,6 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
     _attr_has_entity_name = True
     _attr_supported_features = (
         TodoListEntityFeature.UPDATE_TODO_ITEM | 
-        TodoListEntityFeature.DELETE_TODO_ITEM | 
-        TodoListEntityFeature.CREATE_TODO_ITEM | 
         TodoListEntityFeature.SET_DUE_DATE_ON_ITEM | 
         TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM 
     )
@@ -92,6 +90,7 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
                 self.async_write_ha_state()
                 return
 
+    # not used
     async def async_create_todo_item(self, item: TodoItem) -> None:
         _LOGGER.debug("Creating todo item in '%s': %s", self._list_id, item)
         items = self.coordinator.get_items(self._list_id)
@@ -101,6 +100,7 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
 
 
 
+    # not used
     async def async_delete_todo_items(self, uids: list[str]) -> None:
         _LOGGER.debug(f"Deleting todo item {uids}")
         items = self.coordinator.get_items(self._list_id)

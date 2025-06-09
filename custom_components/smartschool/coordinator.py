@@ -121,6 +121,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     course_name = task.course
                     lesson_hour = course.course_title.split(" - ")[0] if " - " in course.course_title else ""
                     summary = f"{course_name} ({lesson_hour}e u)"
+                    task_type = task.label.replace(" / afwerken", "")
                     description = task.description
                     if task.label == TASK_LABEL_TAAK:
                         list_id = current_list_taken
@@ -142,11 +143,13 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     ))
                     
                     if next_schoolday and task.date == next_schoolday:
+                        summary_next = f"{course_name}: {task_type} ({lesson_hour}e u)"
+                        description_next = task.description
                         new_lists[current_list_volgende].append(TodoItem(
                             uid=task.assignmentID,
-                            summary=f"{task.label}: {summary}",
+                            summary=f"{summary_next}",
                             status=TodoItemStatus(status),
-                            description=description,
+                            description=description_next,
                             due=task.date
                         ))
 
