@@ -19,6 +19,7 @@ from .const import (
     LIST_TOETSEN,
     LIST_MEEBRENGEN,
     LIST_VOLGENDE,
+    LIST_SCHOOLTAS,
     TASK_LABEL_TAAK,
     TASK_LABEL_TOETS,
     CONF_REFRESH_INTERVAL
@@ -73,6 +74,8 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         elif LIST_VOLGENDE in self._list_name:
             return "mdi:timetable"
         elif LIST_MEEBRENGEN in self._list_name:
+            return "mdi:briefcase"
+        elif LIST_SCHOOLTAS in self._list_name:
             return "mdi:briefcase"
         else: # meebrengen
             return "mdi:bookshelf"

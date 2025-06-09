@@ -302,10 +302,10 @@ class AgendaLesson:
     subject: str | None
     course: str
     courseTitle: str
-    classroom: str
-    classroomTitle: str
-    teacher: str
-    teacherTitle: str
+    classroom: str | None
+    classroomTitle: str | None
+    teacher: str | None
+    teacherTitle: str | None
     klassen: str
     klassenTitle: str
     classIDs: str

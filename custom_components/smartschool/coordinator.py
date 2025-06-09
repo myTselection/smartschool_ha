@@ -15,8 +15,10 @@ from .const import (
     LIST_TOETSEN,
     LIST_MEEBRENGEN,
     LIST_VOLGENDE,
+    LIST_SCHOOLTAS,
     TASK_LABEL_TAAK,
-    TASK_LABEL_TOETS
+    TASK_LABEL_TOETS,
+    TASK_LABEL_MEEBRENGEN
 )
 
 from .storage import ChecklistStatusStorage
@@ -58,7 +60,10 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 "LO": "🏀 ",
                 "BE": "🎨 ",
                 "WI": "🧮 ",
-                "M&S": "🚸 "
+                "M&S": "🚸 ",
+                "TE": "🪛 ",
+                "NW": "🧪 ",
+                "CH": "🧪 "
         }
 
     async def async_initialize(self):
@@ -67,31 +72,6 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         await self.async_refresh()
 
     async def _async_update_data(self):
-        # Structure:
-        # {
-        #     "Taak": [
-        #         {
-        #             "uid": "abc",
-        #             "summary": "Deploy release"
-        #         },
-        #         {
-        #             "uid": "def",
-        #             "summary": "Restart server"
-        #         }
-        #     ],
-        #     "Toets": [
-        #         {
-        #             "uid": "xyz",
-        #             "summary": "Clean garage"
-        #         }
-        #     ],
-        #     "Meebrengen / afwerken": [
-        #         {
-        #             "uid": "xyz",
-        #             "summary": "Clean garage"
-        #         }
-        #     ]
-        # }
 
         _LOGGER.debug(f"{DOMAIN} ComponentUpdateCoordinator update started, username: {self._username}, smartschool_domain: {self._smartschool_domain}, birth_date: {self._birth_date}")
         if not(self._session):
@@ -118,11 +98,13 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         current_list_toetsen = f"{LIST_TOETSEN} ({self._username})"
         current_list_meebrengen = f"{LIST_MEEBRENGEN} ({self._username})"
         current_list_volgende = f"{LIST_VOLGENDE} ({self._username})"
+        current_list_schooltas = f"{LIST_SCHOOLTAS} ({self._username})"
         new_lists = {
             current_list_taken: [],
             current_list_toetsen: [],
             current_list_meebrengen: [],
-            current_list_volgende: []
+            current_list_volgende: [],
+            current_list_schooltas: []
         }
 
         valid_uids = set()
@@ -180,8 +162,36 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                             due=task.date
                         ))
 
+                        
+                        if task.label == TASK_LABEL_MEEBRENGEN:
+                            new_lists[current_list_schooltas].append(TodoItem(
+                                uid=task.assignmentID,
+                                summary=summary_next,
+                                status=TodoItemStatus(status),
+                                description=description_next,
+                                due=task.date
+                            ))
+
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
             self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
+
+        #School bag list
+        for agendaitem in self._agenda:
+            if agendaitem.date == next_schoolday:
+                course_icon = self._course_icons.get(agendaitem.course,"")
+                status = self._status_store.get_status(self._unique_user_id, agendaitem.momentID)
+                summary = f"{course_icon}{agendaitem.course} {agendaitem.hour}"
+                description = f"{agendaitem.subject + ", " if agendaitem.subject else ''}{agendaitem.classroom}, {agendaitem.teacher}\n{agendaitem.hourValue}"
+                new_lists[current_list_schooltas].append(TodoItem(
+                    uid=agendaitem.momentID,
+                    summary=summary,
+                    status=TodoItemStatus(status),
+                    description=description,
+                    due=agendaitem.date
+                ))
+            else:
+                break
+
         self._lists = new_lists
         return self._lists
 

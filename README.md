@@ -31,21 +31,31 @@ Integration of python application of [https://github.com/IntelCoreI6/smartschool
 
 After adding Smartschool account a sensor and 4 Todo lists will be added.
 
-- Sensor: 
+### Sensor: 
   - so far limited use, may be extended in future
   - currently only showing last update date
 
-- Todo lists:
+### Todo lists:
   - When checking items in Home Assistant as completed, this will not be reflected into Smartschool. Only future tasks are fetched from Smartschool but no updates from Home Assistant are sent towards Smartschool.
-  - Separate Todo list for "Toetsen", "Taken", "Meebrengen" and "Volgende"
+  - Separate Todo list for "Toetsen", "Taken", "Meebrengen", "Volgende" and "Schooltas"
   - Each Todo list will contain the username between brackets to distinct the list of different users (if multiple accounts are linked)
-  - Volgende:
-    - overview of all "Taken", "Toetsen", "Meebrengen" for next planned lesson (next day or next day after weekend/holiday)
-  - Meebrengen:
+  - The Todo items can be checked, if the same item also appears in another list, it will be marked as checked in there as well
+  - Only items left todo as of today are listed, past items of previous days will automatically be removed of all Todo lists
+  
+  - **Volgende**:
+    - overview of all "Taken", "Toetsen", "Meebrengen" for next planned schoolday (next day or next day after weekend/holiday)
+  - **Schooltas**:
+    - overview of all "Meebrengen" for next planned schoolday (next day or next day after weekend/holiday)
+    - overview of all lessons that will take place the next planned schoolday (next day or next day after weekend/holiday)
+    - with this checklist, it's easy to validate all stuff that should be in the schoolbag is foreseen
+  - **Meebrengen**:
     - within list "Meebrengen", the title will be the item to bring, while the description will be the course info
     - for other lists, the title contains the course name and the description contains the details of the action
-  - The Todo items can be checked, same items appearing in list "Volgende" will also be checked in specific Todo lists
-  - Only items left todo are listed, past items will automatically be removed of all Todo lists
+  - **Taken**:
+    - all upcoming tasks to do, known for coming days
+  - **Toetsen**:
+    - all upcoming tests scheduled, known for coming days
+
 
 
 ## Status

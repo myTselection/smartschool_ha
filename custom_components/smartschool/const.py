@@ -6,6 +6,7 @@ LIST_TAKEN = "Taken"
 LIST_TOETSEN = "Toetsen"
 LIST_MEEBRENGEN = "Meebrengen"
 LIST_VOLGENDE = "Volgende"
+LIST_SCHOOLTAS = "Schooltas"
 
 TASK_LABEL_TAAK = "Taak"
 TASK_LABEL_TOETS = "Toets"
