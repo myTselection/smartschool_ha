@@ -41,6 +41,25 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._birth_date = config.get(CONF_BIRTH_DATE)
         self._unique_user_id = f"{self._username}_{self._smartschool_domain}"
         self._agenda = None
+        
+        #  🇫🇷🇳🇱✝️🌎🎼🏛️🏺📜🧮🟰🏀🎨🤯🚸
+        self._course_icons = {
+                "FR": "🇫🇷 ",
+                "NE": "🇳🇱 ",
+                "EN": "🇬🇧 ",
+                "DE": "🇩🇪 ",
+                "SP": "🇪🇸 ",
+                "GO": "✝️ ",
+                "AA": "🌎 ",
+                "MU": "🎼 ",
+                "LA": "🏛️ ",
+                "GR": "🏺 ",
+                "GE": "📜 ",
+                "LO": "🏀 ",
+                "BE": "🎨 ",
+                "WI": "🧮 ",
+                "M&S": "🚸 "
+        }
 
     async def async_initialize(self):
         
@@ -119,8 +138,9 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     
                     # course_name = course.course_title.split(" - ")[1] if " - " in course.course_title else course.course_title
                     course_name = task.course
+                    course_icon = self._course_icons.get(course_name,"")
                     lesson_hour = course.course_title.split(" - ")[0] if " - " in course.course_title else ""
-                    summary = f"{course_name} ({lesson_hour}e u)"
+                    summary = f"{course_icon}{course_name} ({lesson_hour}e u)"
                     task_type = task.label.replace(" / afwerken", "")
                     description = task.description
                     if task.label == TASK_LABEL_TAAK:
@@ -129,7 +149,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                         list_id = current_list_toetsen
                     else:
                         list_id = current_list_meebrengen
-                        description = f"{course_name} ({lesson_hour}e u)"
+                        description = f"{course_icon}{course_name} ({lesson_hour}e u)"
                         summary = task.description
 
                     valid_uids.add(task.assignmentID)
@@ -143,7 +163,14 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     ))
                     
                     if next_schoolday and task.date == next_schoolday:
-                        summary_next = f"{course_name}: {task_type} ({lesson_hour}e u)"
+                        if task.label == TASK_LABEL_TAAK:
+                            action_icon = "🛠️"
+                        elif task.label == TASK_LABEL_TOETS:
+                            action_icon = "💡"
+                            # action_icon = "🤯"
+                        else:
+                            action_icon = "🎒"
+                        summary_next = f"{action_icon} {course_icon}{course_name}: {task_type} ({lesson_hour}e u)"
                         description_next = task.description
                         new_lists[current_list_volgende].append(TodoItem(
                             uid=task.assignmentID,
@@ -172,7 +199,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
     async def remove_list(self, list_id: str, unique_user_id: str):
         """Remove a to-do list and its saved statuses."""
-        _LOGGER.info("Removing list %s for user %s", list_id, unique_user_id)
+        _LOGGER.info(f"Removing list {list_id} for user {unique_user_id}")
         if list_id in self._lists:
             del self._lists[list_id]
         if unique_user_id in self._status_store._data:
