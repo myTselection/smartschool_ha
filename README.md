@@ -30,7 +30,7 @@ Integration of python application of [https://github.com/IntelCoreI6/smartschool
   - password: password of the child account or password of the parent account
   - MFA: 
     - when using child account, this is by default the date of birth of the child, notation YYYY-MM-DD
-    - when using a parent account or if 2FA has been enabled, the Google Authenticator secret is to be set (see Smartschool > Profile > Login with 2 steps > Authenticator app. If the secret is not known, the Authenticator app will need to be re-linked. During setup of the authenticator app, the 2FA secret can be shown instead of the QR code) 
+    - when using a parent account or if 2FA has been enabled, the Google Authenticator secret is to be set (see Smartschool > Profile > Login with 2 steps > [Authenticator app](https://school.smartschool.be/profile/twofactor/googleAuthenticator). If the secret is not known, the Authenticator app will need to be re-linked. During setup of the authenticator app, the 2FA secret can be shown instead of the QR code) 
 
 ## Usage
 
