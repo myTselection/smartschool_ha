@@ -29,18 +29,16 @@ Integration of python application of [https://github.com/IntelCoreI6/smartschool
 
 ## Usage
 
-After adding Smartschool account a sensor and 4 Todo lists will be added.
+After adding Smartschool account, 5 Todo lists will be added.
 
-### Sensor: 
-  - so far limited use, may be extended in future
-  - currently only showing last update date
 
 ### Todo lists:
-  - When checking items in Home Assistant as completed, this will not be reflected into Smartschool. Only future tasks are fetched from Smartschool but no updates from Home Assistant are sent towards Smartschool.
   - Separate Todo list for "Toetsen", "Taken", "Meebrengen", "Volgende" and "Schooltas"
-  - Each Todo list will contain the username between brackets to distinct the list of different users (if multiple accounts are linked)
-  - The Todo items can be checked, if the same item also appears in another list, it will be marked as checked in there as well
-  - Only items left todo as of today are listed, past items of previous days will automatically be removed of all Todo lists
+  - When checking items in Home Assistant Todo list as completed, this will not be reflected into Smartschool. 
+  - Only future tasks are fetched from Smartschool but no updates from Home Assistant are sent towards Smartschool.
+  - Only items left todo as of today are listed, past items of previous days will automatically be removed of all Todo lists.
+  - Each Todo list will contain the username between brackets to distinct the list of different users (if multiple accounts are linked).
+  - The Todo items can be checked, if the same item also appears in another list, it will be marked as checked in there as well.
   
   - **Volgende**:
     - overview of all "Taken", "Toetsen", "Meebrengen" for next planned schoolday (next day or next day after weekend/holiday)
@@ -61,8 +59,7 @@ After adding Smartschool account a sensor and 4 Todo lists will be added.
 ## Status
 
 ### Not working:
-- login with parent account
-- 2FA with bith date, no other 2FA authentication method supported yet
+- using multiple Smartschool accounts in parallel (eg for multiple children). The Smarschool API session is not yet threadsafe.
 
 
 Still some optimisations are planned, see [Issues](https://github.com/myTselection/smartschool_ha/issues) section in GitHub.
