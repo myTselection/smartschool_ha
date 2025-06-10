@@ -176,7 +176,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 course_icon = self._course_icons.get(agendaitem.course,"")
                 status = self._status_store.get_status(self._unique_user_id, agendaitem.momentID)
                 summary = f"{course_icon}{agendaitem.course} {agendaitem.hour}"
-                description = f"{agendaitem.subject + ", " if agendaitem.subject else ''}{agendaitem.classroom}, {agendaitem.teacher}\n{agendaitem.hourValue}"
+                description = f"{agendaitem.subject + "\n" if agendaitem.subject else ''}{agendaitem.classroom}, {agendaitem.teacher}\n{agendaitem.hourValue}"
                 valid_uids.add(agendaitem.momentID)
                 new_lists[current_list_schooltas].append(TodoItem(
                     uid=agendaitem.momentID,
@@ -189,6 +189,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 break
 
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
+            _LOGGER.debug(f"{DOMAIN} valid uids: {valid_uids}, list {self._unique_user_id}")
             self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
 
         self._lists = new_lists

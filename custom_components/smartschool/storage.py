@@ -31,4 +31,5 @@ class ChecklistStatusStorage:
     def remove_unused_items(self, list_id: str, valid_uids: set):
         # Remove anything not in the latest data set
         if list_id in self._data:
+            _LOGGER.debug(f"remove_unused_items {list_id} {valid_uids}, length: {len(self._data[list_id])}")
             self._data[list_id] = {k: v for k, v in self._data[list_id].items() if k in valid_uids}
