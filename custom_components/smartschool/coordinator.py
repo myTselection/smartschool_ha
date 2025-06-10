@@ -172,8 +172,6 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                                 due=task.date
                             ))
 
-        if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
-            self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
 
         #School bag list
         for agendaitem in self._agenda:
@@ -182,6 +180,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 status = self._status_store.get_status(self._unique_user_id, agendaitem.momentID)
                 summary = f"{course_icon}{agendaitem.course} {agendaitem.hour}"
                 description = f"{agendaitem.subject + ", " if agendaitem.subject else ''}{agendaitem.classroom}, {agendaitem.teacher}\n{agendaitem.hourValue}"
+                valid_uids.add(agendaitem.momentID)
                 new_lists[current_list_schooltas].append(TodoItem(
                     uid=agendaitem.momentID,
                     summary=summary,
@@ -191,6 +190,9 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 ))
             else:
                 break
+            
+        if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
+            self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
 
         self._lists = new_lists
         return self._lists
