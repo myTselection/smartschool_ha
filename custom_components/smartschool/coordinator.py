@@ -84,7 +84,13 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             self._future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())
             _LOGGER.debug(f"{DOMAIN} external data: {self._future_tasks}")
             
-            self._agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda())
+            agenda_timestamp_to_use = datetime.now()
+            now = datetime.now()
+            if now.hour >= 16:
+                agenda_timestamp_to_use=date.today() + timedelta(days=1)
+            
+
+            self._agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda(agenda_timestamp_to_use))
             _LOGGER.debug(f"{DOMAIN} update login completed")
 
             self._lastupdate = datetime.now()
