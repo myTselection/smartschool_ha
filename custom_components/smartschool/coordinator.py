@@ -127,12 +127,16 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     description = task.description
                     if task.label == TASK_LABEL_TAAK:
                         list_id = current_list_taken
+                        action_icon = "🛠️"
                     elif task.label == TASK_LABEL_TOETS:
                         list_id = current_list_toetsen
+                        action_icon = "💡"
+                        # action_icon = "🤯"
                     else:
                         list_id = current_list_meebrengen
                         description = f"{course_icon}{course_name} ({lesson_hour}e u)"
                         summary = task.description
+                        action_icon = "🎒"
 
                     valid_uids.add(task.assignmentID)
                     status = self._status_store.get_status(self._unique_user_id, task.assignmentID)
@@ -145,13 +149,6 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     ))
                     
                     if next_schoolday and task.date == next_schoolday:
-                        if task.label == TASK_LABEL_TAAK:
-                            action_icon = "🛠️"
-                        elif task.label == TASK_LABEL_TOETS:
-                            action_icon = "💡"
-                            # action_icon = "🤯"
-                        else:
-                            action_icon = "🎒"
                         summary_next = f"{action_icon} {course_icon}{course_name}: {task_type} ({lesson_hour}e u)"
                         description_next = task.description
                         new_lists[current_list_volgende].append(TodoItem(
@@ -190,7 +187,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 ))
             else:
                 break
-            
+
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
             self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
 
