@@ -1,3 +1,4 @@
+DOMAIN = "smartschool"
 CONF_SMARTSCHOOL_DOMAIN = "smartschool_domain"
 CONF_MFA = "mfa"
 

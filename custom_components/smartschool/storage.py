@@ -1,6 +1,9 @@
 from homeassistant.helpers.storage import Store
 import logging
-from . import DOMAIN
+
+from .const import (
+    DOMAIN
+)
 _LOGGER = logging.getLogger(DOMAIN)
 
 class ChecklistStatusStorage:
@@ -15,8 +18,8 @@ class ChecklistStatusStorage:
         await self._store.async_save(self._data)
 
     def get_status(self, list_id: str, uid: str) -> str:
-        status= self._data.get(list_id, {}).get(uid, "needs_action")
-        _LOGGER.debug("get_status %s %s %s", list_id, uid, status)
+        status = self._data.get(list_id, {}).get(uid, "needs_action")
+        _LOGGER.debug(f"get_status {list_id} uid: {uid} status: {status}, length: {len(self._data.get(list_id,{}))}")
         return status
 
     def set_status(self, list_id: str, uid: str, status: str):

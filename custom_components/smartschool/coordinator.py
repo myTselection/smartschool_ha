@@ -9,6 +9,7 @@ from homeassistant.const import (
     CONF_USERNAME
 )
 from .const import (
+    DOMAIN,
     CONF_MFA,
     CONF_SMARTSCHOOL_DOMAIN,
     LIST_TAKEN,
@@ -24,21 +25,21 @@ from .const import (
 from .storage import ChecklistStatusStorage
 from .utils import *
 
-from . import DOMAIN
 
 _LOGGER = logging.getLogger(DOMAIN)
 
 class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
     def __init__(self, hass, config_entry, refresh_interval):
-        config = config_entry.data
-        self._username = config.get(CONF_USERNAME)
-        self._password = config.get(CONF_PASSWORD)
-        self._smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
-        self._mfa = config.get(CONF_MFA)
+        self._config = config_entry.data
+        self._username = self._config.get(CONF_USERNAME)
+        self._password = self._config.get(CONF_PASSWORD)
+        self._smartschool_domain = self._config.get(CONF_SMARTSCHOOL_DOMAIN)
+        self._mfa = self._config.get(CONF_MFA)
         self._unique_user_id = f"{self._username}_{self._smartschool_domain}"
-        super().__init__(hass, _LOGGER, config_entry = config_entry, name = f"{DOMAIN} ChecklistCoordinator {self._unique_user_id}", update_interval = timedelta(minutes = refresh_interval))
+        super().__init__(hass, _LOGGER, config_entry = config_entry, name = f"{DOMAIN} ChecklistCoordinator {self._unique_user_id}", update_method=self._async_update_data, update_interval = timedelta(minutes = refresh_interval))
         self._status_store = ChecklistStatusStorage(hass)
+        
         self._lists = {}  # list_id -> list[TodoItem]
         self._hass = hass
         self._session = ComponentSession()
@@ -67,9 +68,11 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         }
 
     async def async_initialize(self):
-        
         await self._status_store.async_load()
-        await self.async_refresh()
+        await self.async_config_entry_first_refresh()
+        
+        # await self._status_store.async_load()
+        # await self.async_refresh()
 
     async def _async_update_data(self):
 
@@ -196,7 +199,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
             _LOGGER.debug(f"{DOMAIN} valid uids: {valid_uids}, list {self._unique_user_id}")
-            self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
+            # self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
 
         self._lists = new_lists
         return self._lists

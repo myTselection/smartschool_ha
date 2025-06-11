@@ -16,8 +16,6 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
-TELENET_DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.0%z"
-
 def check_settings(config, hass):
     if not any(config.get(i) for i in ["username"]):
         _LOGGER.error("username was not set")
@@ -29,15 +27,6 @@ def check_settings(config, hass):
         return True
 
     raise vol.Invalid("Missing settings to setup the sensor.")
-
-class HttpMethod(Enum):
-    GET = 'GET'
-    POST = 'POST'
-    PUT = 'PUT'
-    PATCH = 'PATCH'
-    DELETE = 'DELETE'
-    HEAD = 'HEAD'
-    OPTIONS = 'OPTIONS'
     
 
 from .smartschool_api import (
