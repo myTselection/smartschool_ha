@@ -68,8 +68,6 @@ If desired, an automation can be setup to get notified if the number of tasks fo
 
 ## Status
 
-### Not working:
-
 Still some optimisations are planned, see [Issues](https://github.com/myTselection/smartschool_ha/issues) section in GitHub.
 
 ## Technical pointers
