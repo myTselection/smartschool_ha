@@ -15,7 +15,8 @@ This integration is in no way affiliated with Smartschool.
 | ----------------------------------------------------------------------------------------------------------------------|
 
 
-Integration based python application of [https://github.com/IntelCoreI6/smartschool_mcp](https://github.com/IntelCoreI6/smartschool_mcp) (fork of [https://github.com/svaningelgem/smartschool](https://github.com/svaningelgem/smartschool)) Which has been forked and extended to support parallel sessions and Google Authenticator 2FA.
+Integration based python application of [https://github.com/IntelCoreI6/smartschool_mcp](https://github.com/IntelCoreI6/smartschool_mcp) (fork of [https://github.com/svaningelgem/smartschool](https://github.com/svaningelgem/smartschool)).
+Which has been forked and extended to support parallel sessions and Google Authenticator 2FA.
 <p align="center"><img src="https://github.com/myTselection/smartschool_ha/blob/main/logo.png?raw=true" width="500"/></p>
 
 ## Installation
