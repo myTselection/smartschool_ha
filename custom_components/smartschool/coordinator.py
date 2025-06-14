@@ -41,6 +41,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._status_store = ChecklistStatusStorage(hass)
         
         self._lists = {}  # list_id -> list[TodoItem]
+        self._last_updated = None
         self._hass = hass
         self._session = ComponentSession()
         self._agenda = None
@@ -100,6 +101,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 self._lastupdate = datetime.now()
 
             await self._async_local_refresh_data()
+            self._last_updated = datetime.now()
             return self._lists
         except Exception as err:
                     _LOGGER.error(f"{DOMAIN} ComponentUpdateCoordinator update failed, username: {self._username}, smartschool_domain: {self._smartschool_domain}, mfa: *******", exc_info=err)
@@ -209,6 +211,9 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
     def get_items(self, list_id):
         return self._lists.get(list_id, [])
+    
+    def get_last_updated(self):
+        return self._last_updated
 
     async def update_status(self, unique_user_id, uid, status):
         self._status_store.set_status(unique_user_id, uid, status)

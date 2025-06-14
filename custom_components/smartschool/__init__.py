@@ -39,8 +39,8 @@ DOMAIN = manifest_data.get("domain")
 NAME = manifest_data.get("name")
 VERSION = manifest_data.get("version")
 ISSUEURL = manifest_data.get("issue_tracker")
-# PLATFORMS = [Platform.SENSOR, Platform.TODO]
-PLATFORMS = [Platform.TODO]
+PLATFORMS = [Platform.SENSOR, Platform.TODO]
+# PLATFORMS = [Platform.TODO]
 
 STARTUP = """
 -------------------------------------------------------------------

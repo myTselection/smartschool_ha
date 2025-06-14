@@ -40,8 +40,9 @@ class TopNavCourses:
 
     """
 
+    smartschool: Smartschool  # Injected instance
     def __init__(self, smartschool: Smartschool):
-        super().__init__(smartschool= smartschool)
+        self.smartschool = smartschool
     @cached_property
     def _list(self) -> list[CourseCondensed]:
         return [CourseCondensed(**course) for course in self.smartschool.json("/Topnav/getCourseConfig", method="post")["own"]]
@@ -67,8 +68,10 @@ class Courses:
 
     """
 
+    smartschool: Smartschool  # Injected instance
     def __init__(self, smartschool: Smartschool):
-        super().__init__(smartschool= smartschool)
+        self.smartschool = smartschool
+
     @cached_property
     def _list(self) -> list[Course]:
         return [Course(**course) for course in self.smartschool.json("/results/api/v1/courses/")]
@@ -95,9 +98,9 @@ class CourseDocuments:
     >>> for item in items:
     >>>     print(f"{item.type}: {item.name}")
     """
-    
+    smartschool: Smartschool  # Injected instance
     def __init__(self, course_id: int, smartschool: Smartschool):
-        super().__init__(smartschool= smartschool)
+        self.smartschool = smartschool
         if not isinstance(course_id, int) or course_id <= 0:
             raise ValueError("course_id must be a positive integer.")
         self.course_id = course_id

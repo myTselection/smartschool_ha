@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from abc import ABC
-from dataclasses import dataclass, field
+from pydantic.dataclasses import dataclass, Field
 from pathlib import Path
 
 import yaml
@@ -10,10 +10,10 @@ import yaml
 
 @dataclass
 class Credentials(ABC):
-    username: str = field(default=None)
-    password: str = field(default=None)
-    main_url: str = field(default=None)
-    mfa: str = field(default=None)
+    username: str = Field(default=None)
+    password: str = Field(default=None)
+    main_url: str = Field(default=None)
+    mfa: str = Field(default=None)
 
     other_info: dict | None = None
 
@@ -39,7 +39,7 @@ class Credentials(ABC):
 
 @dataclass
 class PathCredentials(Credentials):
-    filename: str | Path = field(default=Path.cwd().joinpath("credentials.yml"))
+    filename: str | Path = Field(default=Path.cwd().joinpath("credentials.yml"))
 
     def __post_init__(self):
         self.filename = Path(self.filename)

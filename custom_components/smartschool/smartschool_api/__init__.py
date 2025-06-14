@@ -31,7 +31,7 @@ from .messages import (
     SortField,
     SortOrder,
 )
-from .objects import FutureTasks
+from .objects import FutureTasks, Course
 from .periods import Periods
 from .results import ResultDetail, Results
 from .session import Smartschool
@@ -81,3 +81,4 @@ __all__ = [
 logger = setup_logger(logging.DEBUG)
 
 rebuild_dataclass(FutureTasks)
+rebuild_dataclass(Course)

@@ -38,7 +38,26 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 MIN_TIME_BETWEEN_UPDATES = timedelta(minutes=120 + random.uniform(10, 20))
 
 
-async def dry_setup(hass, config_entry, async_add_devices):
+
+async def async_setup_entry(hass, config_entry, async_add_devices):
+    """Setup sensor platform for the ui"""
+    _LOGGER.info("async_setup_entry " + NAME)
+    coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
+    config = config_entry.data
+    await dry_setup(hass, config, async_add_devices, coordinator)
+    return True
+
+
+async def async_remove_entry(hass, config_entry):
+    _LOGGER.info("async_remove_entry " + NAME)
+    try:
+        await hass.config_entries.async_forward_entry_unload(config_entry, "sensor")
+        _LOGGER.info("Successfully removed sensor from the integration")
+    except ValueError:
+        pass
+        
+
+async def dry_setup(hass, config_entry, async_add_devices, coordinator):
     config = config_entry
     username = config.get(CONF_USERNAME)
     password = config.get(CONF_PASSWORD)
@@ -54,9 +73,9 @@ async def dry_setup(hass, config_entry, async_add_devices):
         smartschool_domain,
         mfa,
         async_get_clientsession(hass),
-        hass
+        hass, 
+        coordinator
     )
-    await componentData._force_update()
     
     sensorUser = ComponentUserSensor(componentData, hass)
     sensors.append(sensorUser)
@@ -64,67 +83,22 @@ async def dry_setup(hass, config_entry, async_add_devices):
     async_add_devices(sensors)
 
 
-async def async_setup_platform(
-    hass, config_entry, async_add_devices, discovery_info=None
-):
-    """Setup sensor platform for the ui"""
-    _LOGGER.info("async_setup_platform " + NAME)
-    await dry_setup(hass, config_entry, async_add_devices)
-    return True
-
-
-async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Setup sensor platform for the ui"""
-    _LOGGER.info("async_setup_entry " + NAME)
-    config = config_entry.data
-    await dry_setup(hass, config, async_add_devices)
-    return True
-
-
-async def async_remove_entry(hass, config_entry):
-    _LOGGER.info("async_remove_entry " + NAME)
-    try:
-        await hass.config_entries.async_forward_entry_unload(config_entry, "sensor")
-        _LOGGER.info("Successfully removed sensor from the integration")
-    except ValueError:
-        pass
-        
-
 class ComponentData:
-    def __init__(self, username, password, smartschool_domain, mfa, client, hass):
+    def __init__(self, username, password, smartschool_domain, mfa, client, hass, coordinator):
         self._username = username
         self._password = password
         self._smartschool_domain = smartschool_domain
         self._mfa = mfa
         self._client = client
         self._hass = hass
-        self._session = ComponentSession()
+        self._coordinator = coordinator
         self._userdetails = None
         self._lastupdate = None
         
-    # same as update, but without throttle to make sure init is always executed
-    async def _force_update(self):
-        _LOGGER.info("Fetching update stuff for " + NAME)
-        if not(self._session):
-            self._session = ComponentSession()
-
-        if self._session:
-            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._mfa))
-            assert self._userdetails is not None
-            _LOGGER.debug(f"{NAME} update login completed")
-
-            self._lastupdate = datetime.now()
-                
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    async def _update(self):
-        await self._force_update()
 
     async def update(self):        
-        await self._update()
-    
-    def clear_session(self):
-        self._session : None
-
+        await self._coordinator._async_local_refresh_data()
+        self._lastupdate = self._coordinator.get_last_updated()
 
     @property
     def unique_id(self):
@@ -155,7 +129,6 @@ class ComponentUserSensor(Entity):
     async def async_will_remove_from_hass(self):
         """Clean up after entity before removal."""
         _LOGGER.info("async_will_remove_from_hass " + NAME)
-        self._data.clear_session()
 
 
     @property

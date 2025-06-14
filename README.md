@@ -64,8 +64,6 @@ After adding Smartschool account, 5 Todo lists will be added.
 ## Status
 
 ### Not working:
-- using multiple Smartschool accounts in parallel (eg for multiple children). The Smarschool API session is not yet threadsafe.
-
 
 Still some optimisations are planned, see [Issues](https://github.com/myTselection/smartschool_ha/issues) section in GitHub.
 

@@ -34,7 +34,7 @@ def convert_to_date(x: Optional[str]) -> date:
     return datetime.strptime(x, "%Y-%m-%d").date()
 
 
-Url = Annotated[str, BeforeValidator(lambda x: session.create_url(x))]
+# Url = Annotated[str, BeforeValidator(lambda x: session.create_url(x))]
 Date = Annotated[date, BeforeValidator(convert_to_date)]
 DateTime = Annotated[datetime, BeforeValidator(convert_to_datetime)]
 
@@ -75,7 +75,7 @@ class PersonDescription:
 class _User:
     id: str
     pictureHash: str
-    pictureUrl: Url
+    pictureUrl: str
     description: PersonDescription
     name: PersonDescription
     sort: str
@@ -191,7 +191,7 @@ class ResultWithDetails(Result):
 class CourseCondensed:
     name: str
     teacher: str
-    url: Url
+    url: str
 
     descr: str = Field(repr=False, default="")
     icon: str = Field(repr=False, default="")
@@ -361,7 +361,7 @@ class StudentSupportLink:
     name: str
     description: str
     icon: str
-    link: Url
+    link: str
     cleanLink: str
     isVisible: bool
 
@@ -369,7 +369,7 @@ class StudentSupportLink:
 @dataclass
 class ShortMessage:
     id: int
-    fromImage: Url
+    fromImage: str
     subject: str
     date: DateTime
     status: int
@@ -451,8 +451,8 @@ class FileItem:
     mime_type: str
     size_kb: float
     last_modified: datetime
-    download_url: Url # URL to download the file directly
-    view_url: Url | None # URL to view the file online (e.g., WOPI)
+    download_url: str # URL to download the file directly
+    view_url: str | None # URL to view the file online (e.g., WOPI)
 
 
 @dataclass
@@ -461,7 +461,7 @@ class FolderItem:
     id: int
     name: str
     description: str | None
-    browse_url: Url # URL to browse the contents of this folder
+    browse_url: str # URL to browse the contents of this folder
 
 # Define the Union type for items found in document folders
 DocumentOrFolderItem = Union[FileItem, FolderItem]

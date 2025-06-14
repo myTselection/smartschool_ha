@@ -25,8 +25,9 @@ class Results:
 
     """
 
+    smartschool: Smartschool  # Injected instance
     def __init__(self, smartschool: Smartschool):
-        super().__init__(smartschool= smartschool)
+        self.smartschool = smartschool
 
     def __iter__(self) -> Iterator[Result]:
         for page_nr in count(start=1):  # pragma: no branch
