@@ -94,11 +94,13 @@ class ComponentData:
         self._coordinator = coordinator
         self._userdetails = None
         self._lastupdate = None
+        self._number_of_tasks_next = None
         
 
     async def update(self):        
         await self._coordinator._async_local_refresh_data()
         self._lastupdate = self._coordinator.get_last_updated()
+        self._number_of_tasks_next = self._coordinator.get_number_of_tasks_next()
 
     @property
     def unique_id(self):
@@ -119,7 +121,8 @@ class ComponentUserSensor(Entity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        return self._last_update.strftime("%Y-%m-%d %H:%M:%S") if self._last_update else None
+        # return self._last_update.strftime("%Y-%m-%d %H:%M:%S") if self._last_update else None
+        return self._data._number_of_tasks_next
 
     async def async_update(self):
         await self._data.update()

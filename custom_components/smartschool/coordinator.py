@@ -45,6 +45,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._hass = hass
         self._session = ComponentSession()
         self._agenda = None
+        self._numberOfTasksNext = None
         
         #  🇫🇷🇳🇱✝️🌎🎼🏛️🏺📜🧮🟰🏀🎨🤯🚸
         self._course_icons = {
@@ -90,18 +91,12 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug(f"{DOMAIN} external data: {self._future_tasks}")
                 
                 agenda_timestamp_to_use = datetime.now()
-                now = datetime.now()
-                if now.hour >= 16:
-                    agenda_timestamp_to_use=date.today() + timedelta(days=1)
-                
-
                 self._agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda(agenda_timestamp_to_use))
                 _LOGGER.debug(f"{DOMAIN} update login completed")
 
-                self._lastupdate = datetime.now()
+                self._last_updated = datetime.now()
 
             await self._async_local_refresh_data()
-            self._last_updated = datetime.now()
             return self._lists
         except Exception as err:
                     _LOGGER.error(f"{DOMAIN} ComponentUpdateCoordinator update failed, username: {self._username}, smartschool_domain: {self._smartschool_domain}, mfa: *******", exc_info=err)
@@ -122,11 +117,21 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         }
 
         valid_uids = set()
+        next_schoolday = None
+        number_of_tasks_next = 0
 
-        if len(self._agenda) > 0:
-            next_schoolday = self._agenda[0].date
-            _LOGGER.debug(f"{DOMAIN} next schoolday: {next_schoolday}")
-        
+        for agendaItem in self._agenda:
+            agendaItemDate = agendaItem.date
+            agendaItemHour = agendaItem.hourValue
+            if agendaItemHour:
+                # Extract the start time part, example value: hourValue: 15:10 - 16:00
+                start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
+                # Combine date and time into a single datetime object
+                start_datetime = datetime.strptime(f"{agendaItemDate} {start_time_str}", "%Y-%m-%d %H:%M")
+                if next_schoolday == None and start_datetime > datetime.now():
+                    next_schoolday = agendaItemDate
+                    _LOGGER.debug(f"{DOMAIN} next schoolday: {next_schoolday}")
+                    break  
 
         for day in self._future_tasks.days:
             for course in day.courses:
@@ -144,8 +149,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                         action_icon = "🛠️"
                     elif task.label == TASK_LABEL_TOETS:
                         list_id = current_list_toetsen
-                        action_icon = "💡"
                         # action_icon = "🤯"
+                        action_icon = "💡"
                     else:
                         list_id = current_list_meebrengen
                         description = f"{course_icon}{course_name} ({lesson_hour}e u)"
@@ -163,6 +168,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     ))
                     
                     if next_schoolday and task.date == next_schoolday:
+                        number_of_tasks_next = number_of_tasks_next + 1
                         summary_next = f"{action_icon} {course_icon}{course_name}: {task_type} ({lesson_hour}e u)"
                         description_next = task.description
                         new_lists[current_list_volgende].append(TodoItem(
@@ -185,19 +191,31 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
 
         #School bag list
-        for agendaitem in self._agenda:
-            if agendaitem.date == next_schoolday:
-                course_icon = self._course_icons.get(agendaitem.course,"")
-                status = self._status_store.get_status(self._unique_user_id, agendaitem.momentID)
-                summary = f"{course_icon}{agendaitem.course} {agendaitem.hour}"
-                description = f"{agendaitem.subject + "\n" if agendaitem.subject else ''}{agendaitem.classroom}, {agendaitem.teacher}\n{agendaitem.hourValue}"
-                valid_uids.add(agendaitem.momentID)
+        for agendaItem in self._agenda:
+            if agendaItem.date == next_schoolday:
+                agendaItemDate = agendaItem.date
+                agendaItemHour = agendaItem.hourValue
+                if agendaItemHour:
+                    # Extract the start time part, example value: hourValue: 15:10 - 16:00
+                    start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
+                    # Combine date and time into a single datetime object
+                    start_datetime = datetime.strptime(f"{agendaItemDate} {start_time_str}", "%Y-%m-%d %H:%M")
+                course_icon = self._course_icons.get(agendaItem.course,"")
+                status = self._status_store.get_status(self._unique_user_id, agendaItem.momentID)
+                summary = f"{course_icon}{agendaItem.course} {agendaItem.hour}"
+                subjectline =  ((agendaItem.subject + ' ') if agendaItem.subject else '') + ((agendaItem.courseTitle + ' ') if agendaItem.courseTitle else '')
+                roomLine = ((agendaItem.classroom + ', ') if agendaItem.classroom else '') + (agendaItem.teacher if agendaItem.teacher else '')
+                timeLine = agendaItem.hourValue
+                # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
+                description = ((subjectline + '\n') if len(subjectline) > 0 else '') + ((roomLine + '\n') if len(roomLine) > 0 else '') + timeLine
+                agendatItemUid = f"{agendaItem.momentID}-{agendaItem.hourID}-{agendaItem.lessonID}-{agendaItem.date}-{agendaItem.activityID}"
+                valid_uids.add(agendatItemUid)
                 new_lists[current_list_schooltas].append(TodoItem(
-                    uid=agendaitem.momentID,
+                    uid=agendatItemUid,
                     summary=summary,
                     status=TodoItemStatus(status),
                     description=description,
-                    due=agendaitem.date
+                    due=start_datetime
                 ))
             else:
                 break
@@ -207,6 +225,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             # self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
 
         self._lists = new_lists
+        self._numberOfTasksNext = number_of_tasks_next
         return self._lists
 
     def get_items(self, list_id):
@@ -214,6 +233,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
     
     def get_last_updated(self):
         return self._last_updated
+    def get_number_of_tasks_next(self):
+        return self._numberOfTasksNext
 
     async def update_status(self, unique_user_id, uid, status):
         self._status_store.set_status(unique_user_id, uid, status)

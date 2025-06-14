@@ -47,7 +47,7 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
     _attr_supported_features = (
         TodoListEntityFeature.UPDATE_TODO_ITEM | 
         TodoListEntityFeature.SET_DUE_DATE_ON_ITEM | 
-        # TodoListEntityFeature.SET_DUE_DATETIME_ON_ITEM |
+        TodoListEntityFeature.SET_DUE_DATETIME_ON_ITEM |
         TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM 
     )
 

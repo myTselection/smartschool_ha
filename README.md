@@ -34,8 +34,13 @@ Integration of python application of [https://github.com/IntelCoreI6/smartschool
 
 ## Usage
 
-After adding Smartschool account, 5 Todo lists will be added.
+After adding Smartschool account, a sensor and 5 Todo lists will be added.
 
+### Sensor:
+
+A sensor `sensor.smartschool_[username]_[school]` will be added showing the number of tasks to be done for the next schoolday.
+The sensor also shows the last update from Smartschool in the attribut last_update.
+If desired, an automation can be setup to get notified if the number of tasks for the next schoolday would change.
 
 ### Todo lists:
   - Separate Todo list for "Toetsen", "Taken", "Meebrengen", "Volgende" and "Schooltas"
@@ -45,19 +50,19 @@ After adding Smartschool account, 5 Todo lists will be added.
   - Each Todo list will contain the username between brackets to distinct the list of different users (if multiple accounts are linked).
   - The Todo items can be checked, if the same item also appears in another list, it will be marked as checked in there as well.
   
-  - **Volgende**:
+  - **Volgende** (`todo.volgende_[username]`):
     - overview of all "Taken", "Toetsen", "Meebrengen" for next planned schoolday (next day or next day after weekend/holiday)
-  - **Schooltas**:
+  - **Schooltas** (`todo.schooltas_[username]`):
     - overview of all "Meebrengen" for next planned schoolday (next day or next day after weekend/holiday)
     - overview of all lessons that will take place the next planned schoolday (next day or next day after weekend/holiday)
     - with this checklist, it's easy to validate all stuff that should be in the schoolbag is foreseen
-  - **Meebrengen**:
+  - **Meebrengen** (`todo.meebrengen_[username]`):
     - within list "Meebrengen", the title will be the item to bring, while the description will be the course info
     - for other lists, the title contains the course name and the description contains the details of the action
-  - **Taken**:
-    - all upcoming tasks to do, known for coming days
-  - **Toetsen**:
-    - all upcoming tests scheduled, known for coming days
+  - **Taken** (`todo.taken_[username]`):
+    - All upcoming tasks to do, known for coming days
+  - **Toetsen** (`todo.toetsen_[username]`):
+    - All upcoming tests scheduled, known for coming days
 
 
 
