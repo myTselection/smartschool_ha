@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Self
 from urllib.parse import urljoin
 import pyotp
+import types
 
 
 from .common import bs4_html, get_all_values_from_form
@@ -32,18 +33,13 @@ logger = logging.getLogger(__name__) # Use a logger instance
 
 def _handle_cookies_and_login(func):
     @functools.wraps(func)
-    def inner(self: Smartschool, *args, **kwargs):
+    def inner(self: 'Smartschool', *args, **kwargs):
         if self.creds is None:
-            raise RuntimeError("Please start smartschool first via: `Smartschool.start(PathCredentials())`")
+            raise RuntimeError("Smartschool instance must have valid credentials.")
 
-        self._try_login() # This now handles login and ensures session validity
+        self._try_login()  # Ensures login/session validity
 
-        # _try_login now raises error if session is not valid, so we can proceed
-        resp = func(self, *args, **kwargs)
-
-        # self._session.cookies.save(ignore_discard=True) # REMOVED: _try_login saves cookies now
-
-        return resp
+        return func(self, *args, **kwargs)
 
     return inner
 
@@ -53,10 +49,20 @@ class Smartschool:
     creds: Credentials = None
     
     # _session = httpx.Client(http2=True)
-    _session: Session = field(init=False, default_factory=Session)
+    _session: Session = field(init=False)
     # Remove already_logged_on flag
     # already_logged_on: bool = field(init=False, default=None) # REMOVED
 
+    def __post_init__(self):
+        # logger.debug(f"Smartschool.__post_init__(): creds = {self.creds}") # Added self.creds)
+        self._session = Session()
+        if self.creds is not None:
+            self.creds.validate()
+        # Apply decorator to post and get methods *after* the decorator is defined
+        # Ensure the methods exist on the class *before* this step
+        self.post = types.MethodType(_handle_cookies_and_login(Smartschool.post), self)
+        self.get = types.MethodType(_handle_cookies_and_login(Smartschool.get), self)
+        
     # def __post_init__(self) -> None:
         
     #     self._session.cookies = LWPCookieJar(self.cookie_file)
@@ -102,10 +108,6 @@ class Smartschool:
         #                               "Accept-Encoding": "gzip, deflate, br, zstd",
         #                               "Accept-Language": "en-US,en;q=0.9"})
 
-    # Re-add create_url method
-    def create_url(self, path: str) -> str:
-        """Create a full URL from a path."""
-        return urljoin(self._url, path)
 
     def _try_login(self) -> None:
         """
@@ -390,18 +392,26 @@ class Smartschool:
         # Return the final response after the verification POST
         return googleAuthenticatorResp
 
-    @classmethod
-    def start(cls, creds: Credentials) -> Self:
-        global session
+    # @classmethod
+    # def start(cls, creds: Credentials) -> Self:
+    #     global session
 
-        creds.validate()
-        session.creds = creds
+    #     creds.validate()
+    #     session.creds = creds
 
-        return session
+    #     return session
 
     # @property
     # def cookie_file(self) -> Path:
     #     return Path.cwd() / "cookies.txt"
+
+    def create_url(self, endpoint: str) -> str:
+        return f"{self._url}/{endpoint.lstrip('/')}"
+    
+    # Re-add create_url method
+    # def create_url(self, path: str) -> str:
+    #     """Create a full URL from a path."""
+    #     return urljoin(self._url, path)
 
     @cached_property
     def _url(self) -> str:
@@ -453,9 +463,5 @@ class Smartschool:
     def get(self, url, *args, **kwargs) -> Response:
         return self._session.get(self.create_url(url), *args, **kwargs)
 
-# Apply decorator to post and get methods *after* the decorator is defined
-# Ensure the methods exist on the class *before* this step
-Smartschool.post = _handle_cookies_and_login(Smartschool.post)
-Smartschool.get = _handle_cookies_and_login(Smartschool.get)
 
 session: Smartschool = Smartschool()

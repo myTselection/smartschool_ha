@@ -3,12 +3,13 @@ from __future__ import annotations
 import contextlib
 from abc import ABC, ABCMeta, abstractmethod
 from datetime import date
+from typing import Dict
 from typing import TYPE_CHECKING, Iterator, TypeVar
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import quoteattr
 
 from .common import xml_to_dict
-from .session import session
+from .session import Smartschool
 
 if TYPE_CHECKING:  # pragma: no cover
     from datetime import datetime
@@ -24,13 +25,18 @@ class _SmartschoolXMLMeta(ABCMeta):
     """
 
     def __new__(cls, name, bases, dct):
-        dct["cache"] = {}
+        # dct["cache"] = {}
         return super().__new__(cls, name, bases, dct)
 
 
-class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
-    cache: dict  # Type hint for the dynamically added attribute
 
+class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
+    cache: Dict = None
+    smartschool: Smartschool  # Injected instance
+
+    def __init__(self, smartschool: Smartschool):
+        self.cache = {}
+        self.smartschool = smartschool
     def _construct_command(self) -> str:
         txt = "<request><command>"
         txt += f"<subsystem>{self._subsystem}</subsystem>"
@@ -77,7 +83,7 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
             return self._get_from_cache()
         
         # print(f"Request: {self._url} : {self._construct_command()}")
-        response = session.post(
+        response = self.smartschool.post(
             self._url,
             data={
                 "command": self._construct_command(),
@@ -132,6 +138,10 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
 
 
 class SmartschoolXML_WeeklyCache(SmartschoolXML, ABC):
+    def __init__(self, smartschool: Smartschool, timestamp_to_use: datetime | None = None):
+        super().__init__(smartschool= smartschool)
+        self.timestamp_to_use = timestamp_to_use
+
     @property
     def _cache_key(self):
         # Week number
@@ -143,9 +153,6 @@ class SmartschoolXML_WeeklyCache(SmartschoolXML, ABC):
 
     def _store_into_cache(self, obj: object) -> None:
         self.cache[self._cache_key] = obj
-
-    def __init__(self, timestamp_to_use: datetime | None = None):
-        self.timestamp_to_use = timestamp_to_use
 
 
 class SmartschoolXML_NoCache(SmartschoolXML, ABC):

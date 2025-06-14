@@ -8,11 +8,12 @@ from pathlib import Path
 import yaml
 
 
+@dataclass
 class Credentials(ABC):
-    username: str
-    password: str
-    main_url: str
-    mfa: str
+    username: str = field(default=None)
+    password: str = field(default=None)
+    main_url: str = field(default=None)
+    mfa: str = field(default=None)
 
     other_info: dict | None = None
 

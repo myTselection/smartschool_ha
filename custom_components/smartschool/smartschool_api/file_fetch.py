@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from .exceptions import SmartSchoolAuthenticationError, SmartSchoolException
 # Import models from objects.py
 from .objects import FileItem, FolderItem, DocumentOrFolderItem
-from .session import session
+from .session import Smartschool
 
 if TYPE_CHECKING:  # pragma: no cover
     pass
@@ -47,6 +47,7 @@ def browse_course_documents(
     course_id: int,
     folder_id: int,
     ss_id: int,
+    smartschool: Smartschool = None
 ) -> List[DocumentOrFolderItem]: # Updated return type hint
     """
     Browses the contents (files and subfolders) of a specific folder
@@ -66,12 +67,12 @@ def browse_course_documents(
         SmartSchoolAuthenticationError: If redirected to the login page.
     """
     browse_url_path = f"/Documents/Index/Index/courseID/{course_id}/parentID/{folder_id}/ssID/{ss_id}"
-    full_browse_url = session.create_url(browse_url_path)
+    full_browse_url = smartschool.create_url(browse_url_path)
 
     logger.info(f"Browsing course documents for courseID={course_id}, folderID={folder_id}")
 
     try:
-        response = session.get(full_browse_url, allow_redirects=True)
+        response = smartschool.get(full_browse_url, allow_redirects=True)
         response.raise_for_status()
 
         if "/login" in response.url:
@@ -161,7 +162,8 @@ def download_document(
     doc_id: int,
     ss_id: int,
     target_path: str | Path,
-    overwrite: bool = False
+    overwrite: bool = False,
+    smartschool: Smartschool = None
 ) -> Path:
     """
     Downloads a specific document from a course's document section.
@@ -188,7 +190,7 @@ def download_document(
     # This assumes the download URL format is consistent.
     # If FileItem provides a reliable download_url, prefer using that.
     download_url_path = f"/Documents/Download/Index/htm/0/courseID/{course_id}/docID/{doc_id}/ssID/{ss_id}"
-    full_download_url = session.create_url(download_url_path)
+    full_download_url = smartschool.create_url(download_url_path)
 
     target_filepath = Path(target_path)
 
@@ -207,7 +209,7 @@ def download_document(
 
     try:
         # Use stream=True for potentially large files
-        with session.get(full_download_url, stream=True, allow_redirects=True) as response:
+        with smartschool.get(full_download_url, stream=True, allow_redirects=True) as response:
             response.raise_for_status() # Check for HTTP errors
 
             # Check if we were redirected to login

@@ -6,12 +6,16 @@ from datetime import datetime, date, timedelta  # Added date import
 
 from ._xml_interface import SmartschoolXML_WeeklyCache
 from .objects import AgendaHour, AgendaLesson, AgendaMomentInfo
+from .session import Smartschool
 
 
 class AgendaPoster(SmartschoolXML_WeeklyCache, ABC):
     """Caches the information on a weekly basis, and posts to the mentioned URL."""
 
     _url: str = "/?module=Agenda&file=dispatcher"
+
+    def __init__(self, smartschool: Smartschool, timestamp_to_use: datetime | date | None = None):
+        super().__init__(smartschool= smartschool, timestamp_to_use=timestamp_to_use)
 
 
 class SmartschoolLessons(AgendaPoster):
@@ -50,6 +54,8 @@ class SmartschoolLessons(AgendaPoster):
     - freedayIcon
     - someSubjectsEmpty
     """
+    def __init__(self, smartschool: Smartschool, timestamp_to_use: datetime | date | None = None):
+        super().__init__(smartschool=smartschool, timestamp_to_use=timestamp_to_use)
 
     @property
     def _xpath(self) -> str:

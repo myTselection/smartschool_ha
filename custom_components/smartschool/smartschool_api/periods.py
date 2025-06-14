@@ -1,7 +1,7 @@
 from typing import Iterator
 
 from .objects import Period
-from .session import session
+from .session import Smartschool
 
 __all__ = ["Periods"]
 
@@ -21,6 +21,9 @@ class Periods:
 
     """
 
+    def __init__(self, smartschool: Smartschool):
+        super().__init__(smartschool= smartschool)
+
     def __iter__(self) -> Iterator[Period]:
-        for period in session.json("/results/api/v1/periods/"):
+        for period in self.smartschool.json("/results/api/v1/periods/"):
             yield Period(**period)

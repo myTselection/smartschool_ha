@@ -9,7 +9,7 @@ from pydantic import AliasChoices, BeforeValidator, constr
 from pydantic.dataclasses import Field, dataclass
 
 from .common import as_float
-from .session import session
+from .session import Smartschool
 
 # Keep the constr definition for Pydantic's use, but use 'str' for type hints
 String = constr(strip_whitespace=True)
@@ -257,13 +257,14 @@ class FutureTasks:
 
     """
 
+    smartschool: Smartschool
     days: list[FutureTaskOneDay] = Field(default_factory=list)
     last_assignment_id: int = 0
     last_date: Date = Field(default_factory=date.today)
 
     def __post_init__(self):
         """I need to do this here because when I do it in Agenda, it'll not lazily load it. But in this way, I load it on construction."""
-        json = session.json(
+        json = self.smartschool.json(
             "/Agenda/Futuretasks/getFuturetasks",
             method="post",
             data={
@@ -421,9 +422,10 @@ class Attachment:
     icon: str
     wopiAllowed: bool
     order: int
+    smartschool: Smartschool
 
     def download(self) -> bytes:
-        resp = session.get(f"/?module=Messages&file=download&fileID={self.fileID}&target=0")
+        resp = self.smartschool.get(f"/?module=Messages&file=download&fileID={self.fileID}&target=0")
         return base64.b64decode(resp.content)
 
 

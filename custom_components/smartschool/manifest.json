@@ -9,5 +9,5 @@
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/myTselection/smartschool_ha/issues",
     "requirements": ["beautifulsoup4", "html5lib","pyotp"],
-    "version": "1.2.5"
+    "version": "1.2.6"
 }

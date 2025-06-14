@@ -1,7 +1,7 @@
 from typing import Iterator
 
 from .objects import StudentSupportLink
-from .session import session
+from .session import Smartschool
 
 __all__ = ["StudentSupportLinks"]
 
@@ -21,7 +21,10 @@ class StudentSupportLinks:
 
     """
 
+    def __init__(self, smartschool: Smartschool):
+        super().__init__(smartschool= smartschool)
+
     def __iter__(self) -> Iterator[StudentSupportLink]:
-        json = session.json("/student-support/api/v1/")
+        json = self.smartschool.json("/student-support/api/v1/")
         for result in json:
             yield StudentSupportLink(**result)

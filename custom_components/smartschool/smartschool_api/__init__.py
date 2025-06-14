@@ -36,6 +36,7 @@ from .periods import Periods
 from .results import ResultDetail, Results
 from .session import Smartschool
 from .student_support import StudentSupportLinks
+from pydantic.dataclasses import rebuild_dataclass
 
 __all__ = [
     "PathCredentials",
@@ -78,3 +79,5 @@ __all__ = [
 ]
 
 logger = setup_logger(logging.DEBUG)
+
+rebuild_dataclass(FutureTasks)

@@ -132,3 +132,5 @@ dmypy.json
 custom_components/telenet_telemeter/secret.py
 tests/secret.py
 custom_components/telenet_telemeter/test.py
+custom_components/smartschool/smartschool_api/test.py
+custom_components/smartschool/test.py

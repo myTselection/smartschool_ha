@@ -38,7 +38,7 @@ from .smartschool_api import (
 
 class ComponentSession(object):
     def __init__(self):
-        self.session = None
+        self.smartschool = None
         self.creds = None
 
     
@@ -47,16 +47,16 @@ class ComponentSession(object):
     def login(self, username, password, smartschool_domain, mfa):
         _LOGGER.info("Trying to login to Smartschool")
         self.creds = AppCredentials(username, password, smartschool_domain, mfa)
-        self.session = Smartschool.start(self.creds)
+        self.smartschool = Smartschool(creds=self.creds)
         return {}
 
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getFutureTasks(self):
-        return FutureTasks()
+        return FutureTasks(smartschool=self.smartschool)
 
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getAgenda(self, timestamp_to_use: datetime | None = None):
-        agenda = list(SmartschoolLessons(timestamp_to_use=timestamp_to_use))
+        agenda = list(SmartschoolLessons(smartschool=self.smartschool, timestamp_to_use=timestamp_to_use))
         return agenda
