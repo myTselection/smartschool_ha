@@ -15,3 +15,4 @@ TASK_LABEL_MEEBRENGEN = "Meebrengen / afwerken"
 
 CONF_REFRESH_INTERVAL = "refresh_interval"
 CONF_DEFAULT_LIST = "default_list"
+

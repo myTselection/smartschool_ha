@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import logging
 
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.components.todo import TodoItem, TodoItemStatus
 
 from homeassistant.const import (
@@ -64,7 +64,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 "M&S": "🚸 ",
                 "TE": "🪛 ",
                 "NW": "🧪 ",
-                "CH": "🧪 "
+                "CH": "🧪 ",
+                "LEEFS & TRAJ": "🗝️ "
         }
 
     async def async_initialize(self):
@@ -75,32 +76,34 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         # await self.async_refresh()
 
     async def _async_update_data(self):
+        try:
+            _LOGGER.debug(f"{DOMAIN} ComponentUpdateCoordinator update started, username: {self._username}, smartschool_domain: {self._smartschool_domain}, mfa: *******")
+            if not(self._session):
+                self._session = ComponentSession()
 
-        _LOGGER.debug(f"{DOMAIN} ComponentUpdateCoordinator update started, username: {self._username}, smartschool_domain: {self._smartschool_domain}, mfa: *******")
-        if not(self._session):
-            self._session = ComponentSession()
+            if self._session:
+                self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._mfa))
+                assert self._userdetails is not None
 
-        if self._session:
-            self._userdetails = await self._hass.async_add_executor_job(lambda: self._session.login(self._username, self._password, self._smartschool_domain, self._mfa))
-            assert self._userdetails is not None
+                self._future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())
+                _LOGGER.debug(f"{DOMAIN} external data: {self._future_tasks}")
+                
+                agenda_timestamp_to_use = datetime.now()
+                now = datetime.now()
+                if now.hour >= 16:
+                    agenda_timestamp_to_use=date.today() + timedelta(days=1)
+                
 
-            self._future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())
-            _LOGGER.debug(f"{DOMAIN} external data: {self._future_tasks}")
-            
-            agenda_timestamp_to_use = datetime.now()
-            now = datetime.now()
-            if now.hour >= 16:
-                agenda_timestamp_to_use=date.today() + timedelta(days=1)
-            
+                self._agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda(agenda_timestamp_to_use))
+                _LOGGER.debug(f"{DOMAIN} update login completed")
 
-            self._agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda(agenda_timestamp_to_use))
-            _LOGGER.debug(f"{DOMAIN} update login completed")
+                self._lastupdate = datetime.now()
 
-            self._lastupdate = datetime.now()
-
-        await self._async_local_refresh_data()
-        return self._lists
-    
+            await self._async_local_refresh_data()
+            return self._lists
+        except Exception as err:
+                    _LOGGER.error(f"{DOMAIN} ComponentUpdateCoordinator update failed, username: {self._username}, smartschool_domain: {self._smartschool_domain}, mfa: *******", exc_info=err)
+                    raise UpdateFailed(f"Error fetching data: {err}")
     
     async def _async_local_refresh_data(self):        
         current_list_taken = f"{LIST_TAKEN} ({self._username})"

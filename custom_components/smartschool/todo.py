@@ -34,6 +34,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     list_ids = coordinator._lists.keys()
     async_add_entities([ComponentTodoListEntity(hass, coordinator, list_name, coordinator._unique_user_id) for list_name in list_ids])
+    
 
     return True
 
@@ -52,6 +53,7 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
 
     def __init__(self, hass, coordinator, list_name: str, unique_user_id: str):
         self.coordinator = coordinator
+        self.coordinator.async_add_listener(self._handle_coordinator_update)
         self._attr_unique_id = f"{DOMAIN}_{list_name}"
         self._attr_name = list_name
         self._list_name = list_name
@@ -59,6 +61,12 @@ class ComponentTodoListEntity(CoordinatorEntity[ComponentUpdateCoordinator], Tod
         self.hass = hass
         self._items = []
         _LOGGER.debug(f"Initialized todolist entity for list_name: {self._list_name}")
+
+    def _handle_coordinator_update(self):
+        """Called when the coordinator updates."""
+        # Entities like sensor or light are polled or refreshed on state change or UI load. todo entities are more passive, so if you don’t explicitly subscribe, Home Assistant won’t keep the update_interval running.
+        _LOGGER.debug("Coordinator updated, writing HA state")
+        self.async_write_ha_state()
 
     @property
     def icon(self) -> str:

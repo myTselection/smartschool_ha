@@ -97,6 +97,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
     """Set up component as config entry."""
     refresh_interval = config_entry.options.get(CONF_REFRESH_INTERVAL, 30)
+    # refresh_interval = 1 #DEBUG
     coordinator = ComponentUpdateCoordinator(hass, config_entry, refresh_interval)
     await coordinator.async_initialize() 
     
@@ -106,7 +107,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
     config_entry.async_on_unload(config_entry.add_update_listener(async_update_options))
     _LOGGER.info(f"{DOMAIN} register_services")
-    # register_services(hass, config_entry)
+    register_services(hass, config_entry)
     return True
 
 
@@ -121,15 +122,11 @@ async def async_remove_entry(hass, config_entry):
 
 def register_services(hass, config_entry):
         
-    async def handle_todo(call):
+    async def handle_manual_refresh(call):
         """Handle the service call."""
+        coordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
+        await coordinator.async_request_refresh()
         
-        config = config_entry.data
-        smartschool_domain = config.get(CONF_SMARTSCHOOL_DOMAIN)
-        username = config.get(CONF_USERNAME)
-        password = config.get(CONF_PASSWORD)
-        mfa = config.get(CONF_MFA)
 
-
-    hass.services.async_register(DOMAIN, 'todo', handle_todo)
+    hass.services.async_register(DOMAIN, 'manual_refresh', handle_manual_refresh)
     _LOGGER.info(f"async_register done")
