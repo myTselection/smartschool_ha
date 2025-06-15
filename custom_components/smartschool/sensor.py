@@ -137,7 +137,7 @@ class ComponentUserSensor(Entity):
     @property
     def icon(self) -> str:
         """Shows the correct icon for container."""
-        return "mdi:bookshelf"
+        return "mdi:account-school"
         
     @property
     def unique_id(self) -> str:
