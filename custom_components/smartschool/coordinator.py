@@ -128,7 +128,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
                 # Combine date and time into a single datetime object
                 start_datetime = datetime.strptime(f"{agendaItemDate} {start_time_str}", "%Y-%m-%d %H:%M")
-                if next_schoolday == None and start_datetime > datetime.now():
+                if start_datetime > datetime.now():
                     next_schoolday = agendaItemDate
                     _LOGGER.debug(f"{DOMAIN} next schoolday: {next_schoolday}")
                     break  
