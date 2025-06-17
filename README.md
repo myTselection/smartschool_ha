@@ -35,9 +35,9 @@ Which has been forked and extended to support parallel sessions and Google Authe
 
 ## Usage
 
-After adding Smartschool account, a sensor and 5 Todo lists will be added.
+After adding Smartschool account, a 3 sensors and 5 Todo lists will be added.
 
-### Sensor:
+### Sensors:
 
 - **Tasks**
 A sensor `sensor.smartschool_[username]_[school]_tasks` will be added showing the number of tasks to be done for the next schoolday.
