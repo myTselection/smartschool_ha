@@ -77,8 +77,12 @@ async def dry_setup(hass, config_entry, async_add_devices, coordinator):
         coordinator
     )
     
-    sensorUser = ComponentUserSensor(componentData, hass)
-    sensors.append(sensorUser)
+    sensorTasks = ComponentUserSensor(componentData, hass)
+    sensors.append(sensorTasks)
+    sensorMessages = ComponentMessageSensor(componentData, hass)
+    sensors.append(sensorMessages)
+    sensorResults = ComponentResultsSensor(componentData, hass)
+    sensors.append(sensorResults)
         
     async_add_devices(sensors)
 
@@ -88,6 +92,7 @@ class ComponentData:
         self._username = username
         self._password = password
         self._smartschool_domain = smartschool_domain
+        self._school = self._smartschool_domain.replace(".smartschool.be", "")
         self._mfa = mfa
         self._client = client
         self._hass = hass
@@ -95,20 +100,28 @@ class ComponentData:
         self._userdetails = None
         self._lastupdate = None
         self._number_of_tasks_next = None
+        self._number_of_read_messages = None
+        self._number_of_outstanding_messages = None
+        self._total_number_of_messages = None
+        self._total_result = None
         
 
     async def update(self):        
         await self._coordinator._async_local_refresh_data()
         self._lastupdate = self._coordinator.get_last_updated()
         self._number_of_tasks_next = self._coordinator.get_number_of_tasks_next()
+        self._number_of_read_messages = self._coordinator.get_number_of_read_messages()
+        self._number_of_outstanding_messages = self._coordinator.get_number_of_outstanding_messages()
+        self._total_number_of_messages = self._coordinator.get_total_number_of_messages()
+        self._total_result = self._coordinator.get_total_result()
 
     @property
     def unique_id(self):
-        return f"{NAME} {self._username}"
+        return f"{NAME} {self._username} {self._school}"
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
-        return self.unique_id
+        return self.unique_id.title()
 
 class ComponentUserSensor(Entity):
     def __init__(self, data, hass):
@@ -119,7 +132,7 @@ class ComponentUserSensor(Entity):
         self._username = self._data._username
 
     @property
-    def state(self):
+    def state(self) -> int | None:
         """Return the state of the sensor."""
         # return self._last_update.strftime("%Y-%m-%d %H:%M:%S") if self._last_update else None
         return self._data._number_of_tasks_next
@@ -143,7 +156,7 @@ class ComponentUserSensor(Entity):
     def unique_id(self) -> str:
         """Return the name of the sensor."""
         return (
-            f"{NAME} {self._username} {self._school}"
+            f"{NAME} {self._username} {self._school} tasks"
         )
 
     @property
@@ -177,14 +190,174 @@ class ComponentUserSensor(Entity):
     @property
     def unit(self) -> int:
         """Unit"""
-        return datetime
+        return int
 
     @property
     def unit_of_measurement(self) -> str:
         """Return the unit of measurement this sensor expresses itself in."""
-        return ""
+        return "tasks"
 
     @property
     def friendly_name(self) -> str:
-        return self.name
+        return self.name.title()
         
+
+class ComponentMessageSensor(Entity):
+    def __init__(self, data, hass):
+        self._data = data
+        self._hass = hass
+        self._last_update = None
+        self._school = self._data._smartschool_domain.replace(".smartschool.be", "")
+        self._username = self._data._username
+
+    @property
+    def state(self) -> int | None:
+        """Return the state of the sensor."""
+        return self._data._number_of_outstanding_messages
+
+    async def async_update(self):
+        await self._data.update()
+        self._last_update =  self._data._lastupdate
+        
+        
+    async def async_will_remove_from_hass(self):
+        """Clean up after entity before removal."""
+        _LOGGER.info("async_will_remove_from_hass " + NAME)
+
+
+    @property
+    def icon(self) -> str:
+        """Shows the correct icon for container."""
+        return "mdi:email-alert"
+        
+    @property
+    def unique_id(self) -> str:
+        """Return the name of the sensor."""
+        return (
+            f"{NAME} {self._username} {self._school} messages"
+        )
+
+    @property
+    def name(self) -> str:
+        return self.unique_id
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return the state attributes."""
+        return {
+            ATTR_ATTRIBUTION: NAME,
+            "last update": self._last_update,
+            "number of read messages": self._data._number_of_read_messages,
+            "number of onread messages": self._data._number_of_outstanding_messages,
+            "total number of messages": self._data._total_number_of_messages,
+            "username": self._username,
+            "school": self._school,
+            "entity_picture": "https://raw.githubusercontent.com/myTselection/smartschool_ha/master/icon.png"
+        }
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info."""
+        return DeviceInfo(
+            identifiers={
+                # Serial numbers are unique identifiers within a specific domain
+                (NAME, self._data.unique_id)
+            },
+            name=self._data.name,
+            manufacturer= NAME
+        )
+    
+
+    @property
+    def unit(self) -> int:
+        """Unit"""
+        return int
+
+    @property
+    def unit_of_measurement(self) -> str:
+        """Return the unit of measurement this sensor expresses itself in."""
+        return "messages"
+
+    @property
+    def friendly_name(self) -> str:
+        return self.name.title()
+    
+
+
+class ComponentResultsSensor(Entity):
+    def __init__(self, data, hass):
+        self._data = data
+        self._hass = hass
+        self._last_update = None
+        self._school = self._data._smartschool_domain.replace(".smartschool.be", "")
+        self._username = self._data._username
+
+    @property
+    def state(self) -> int | None:
+        """Return the state of the sensor."""
+        return self._data._total_result
+
+    async def async_update(self):
+        await self._data.update()
+        self._last_update =  self._data._lastupdate
+        
+        
+    async def async_will_remove_from_hass(self):
+        """Clean up after entity before removal."""
+        _LOGGER.info("async_will_remove_from_hass " + NAME)
+
+
+    @property
+    def icon(self) -> str:
+        """Shows the correct icon for container."""
+        return "mdi:counter"
+        
+    @property
+    def unique_id(self) -> str:
+        """Return the name of the sensor."""
+        return (
+            f"{NAME} {self._username} {self._school} results"
+        )
+
+    @property
+    def name(self) -> str:
+        return self.unique_id
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        """Return the state attributes."""
+        return {
+            ATTR_ATTRIBUTION: NAME,
+            "last update": self._last_update,
+            "total result": self._data._total_result,
+            "username": self._username,
+            "school": self._school,
+            "entity_picture": "https://raw.githubusercontent.com/myTselection/smartschool_ha/master/icon.png"
+        }
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return the device info."""
+        return DeviceInfo(
+            identifiers={
+                # Serial numbers are unique identifiers within a specific domain
+                (NAME, self._data.unique_id)
+            },
+            name=self._data.name,
+            manufacturer= NAME
+        )
+    
+
+    @property
+    def unit(self) -> int:
+        """Unit"""
+        return int
+
+    @property
+    def unit_of_measurement(self) -> str:
+        """Return the unit of measurement this sensor expresses itself in."""
+        return "%"
+
+    @property
+    def friendly_name(self) -> str:
+        return self.name.title()

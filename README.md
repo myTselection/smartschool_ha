@@ -39,9 +39,20 @@ After adding Smartschool account, a sensor and 5 Todo lists will be added.
 
 ### Sensor:
 
-A sensor `sensor.smartschool_[username]_[school]` will be added showing the number of tasks to be done for the next schoolday.
+- **Tasks**
+A sensor `sensor.smartschool_[username]_[school]_tasks` will be added showing the number of tasks to be done for the next schoolday.
 The sensor also shows the last update from Smartschool in the attribut last_update.
 If desired, an automation can be setup to get notified if the number of tasks for the next schoolday would change.
+
+- **Messages**
+A sensor `sensor.smartschool_[username]_[school]_messages` will be added showing the number of outstanding (unread) messages.
+The sensor also shows the number of read and total number of messages, as well as the last update from Smartschool in the attribut last_update.
+
+- **Results** (untested)
+A sensor `sensor.smartschool_[username]_[school]_results` will be added showing the total results.
+Since the results are not always available (some schools only make them available at sepcific intervals), this hasn't been tested yet. Extra results per course might be made availble later on, once tested.
+The sensor also shows the last update from Smartschool in the attribut last_update.
+
 
 ### Todo lists:
   - Separate Todo list for "Toetsen", "Taken", "Meebrengen", "Volgende" and "Schooltas"

@@ -34,7 +34,8 @@ from .smartschool_api import (
     AppCredentials,
     FutureTasks,
     SmartschoolLessons, 
-    Results
+    Results,
+    MessageHeaders
 )
 
 class ComponentSession(object):
@@ -67,3 +68,9 @@ class ComponentSession(object):
     def getResults(self):
         results = list(Results(smartschool=self.smartschool))
         return results
+    
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    def getMessages(self, timestamp_to_use: datetime | None = None):
+        agenda = list(MessageHeaders(smartschool=self.smartschool))
+        return agenda
