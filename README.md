@@ -98,6 +98,10 @@ logger:
      custom_components.smartschool_ha: debug
 ```
 
-## Example usage:
+## Example usage & screenshots:
 
 <p align="left"><img src="https://github.com/myTselection/smartschool_ha/blob/main/Example1.png?raw=true"/></p>
+
+<p align="left"><img src="https://github.com/myTselection/smartschool_ha/blob/main/Setup.png?raw=true"/></p>
+
+<p align="left"><img src="https://github.com/myTselection/smartschool_ha/blob/main/Sensors.png?raw=true"/></p>
