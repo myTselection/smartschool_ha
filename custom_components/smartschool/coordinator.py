@@ -167,7 +167,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                         due=task.date
                     ))
                     
-                    if next_schoolday and task.date == next_schoolday:
+                    if task.date == None or task.date == next_schoolday:
                         number_of_tasks_next = number_of_tasks_next + 1
                         summary_next = f"{action_icon} {course_icon}{course_name}: {task_type} ({lesson_hour}e u)"
                         description_next = task.description
@@ -191,15 +191,17 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
 
         #School bag list
+        next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d")
         for agendaItem in self._agenda:
+            _LOGGER.debug(f"{DOMAIN} agendaItem: {agendaItem}, agendaItem.date: {agendaItem.date}, next_schoolday: {next_schoolday}")
+            agendaItemDate = datetime.strptime(f"{agendaItem.date}", "%Y-%m-%d")
             if agendaItem.date == next_schoolday:
-                agendaItemDate = agendaItem.date
                 agendaItemHour = agendaItem.hourValue
                 if agendaItemHour:
                     # Extract the start time part, example value: hourValue: 15:10 - 16:00
                     start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
                     # Combine date and time into a single datetime object
-                    start_datetime = datetime.strptime(f"{agendaItemDate} {start_time_str}", "%Y-%m-%d %H:%M")
+                    start_datetime = datetime.strptime(f"{agendaItem.date} {start_time_str}", "%Y-%m-%d %H:%M")
                 course_icon = self._course_icons.get(agendaItem.course,"")
                 status = self._status_store.get_status(self._unique_user_id, agendaItem.momentID)
                 summary = f"{course_icon}{agendaItem.course} {agendaItem.hour}"
@@ -217,8 +219,10 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     description=description,
                     due=start_datetime
                 ))
-            else:
+            elif agendaItemDate > next_schooldayDate:
                 break
+            else:
+                continue
 
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
             _LOGGER.debug(f"{DOMAIN} valid uids: {valid_uids}, list {self._unique_user_id}")
