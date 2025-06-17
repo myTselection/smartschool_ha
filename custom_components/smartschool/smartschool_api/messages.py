@@ -74,12 +74,13 @@ class MessageHeaders(_MessagesPoster, SmartschoolXML_NoCache):
 
     def __init__(
         self,
+        smartschool: Smartschool,
         box_type: BoxType = BoxType.INBOX,
         sort_by: SortField = SortField.DATE,
         sort_order: SortOrder = SortOrder.DESC,
         already_seen_message_ids: list[int] | None = None,
     ):
-        super().__init__()
+        super().__init__(smartschool=smartschool)
 
         self.box_type = box_type
         self.sort_by = sort_by
