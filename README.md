@@ -78,7 +78,7 @@ The sensor also shows the last update from Smartschool in the attribut last_upda
 
 ### Calendar:
 
-Smartschool allows to export lessons and tasks as a iCal calendar.
+I recently [discovered](https://community.home-assistant.io/t/template-with-calendar-events-in-rss-feed/626149/5) Smartschool allows to export lessons and tasks as a iCal calendar.
 Home Assistant support importing iCal calendar using the default "[Remote Calendar](https://www.home-assistant.io/integrations/remote_calendar/)" integration. Add the url retrieved from Smartschool > Go To > Schoolagenda > Export. 
 Still testing the options of this calendar integration, will probably have to wait till september to get some usefull data into it.
 
