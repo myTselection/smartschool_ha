@@ -76,7 +76,11 @@ The sensor also shows the last update from Smartschool in the attribut last_upda
   - **Toetsen** (`todo.toetsen_[username]`):
     - All upcoming tests scheduled, known for coming days
 
+### Calendar:
 
+Smartschool allows to export lessons and tasks as a iCal calendar.
+Home Assistant support importing iCal calendar using the default "Remote Calendar" integration. Add the url retrieved from Smartschool > Go To > Schoolagenda > Export. 
+Still testing the options of this calendar integration, will probably have to wait till september to get some usefull data into it.
 
 ## Status
 
