@@ -21,7 +21,7 @@ This application has been [forked and extended](https://github.com/myTselection/
 <p align="center"><img src="https://github.com/myTselection/smartschool_ha/blob/main/logo.png?raw=true" width="500"/></p>
 
 ## Installation
-- [HACS](https://hacs.xyz/): (awaiting HACS approval: search for Smartschool in HACS integrations and install)
+- [HACS](https://hacs.xyz/): (awaiting [brands](https://github.com/home-assistant/brands/pull/7235) HACS approval: search for Smartschool in HACS integrations and install)
   - [![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg?style=flat-square)](https://my.home-assistant.io/redirect/hacs_repository/?owner=myTselection&repository=smartschool_ha&category=integration)
   - or add this repository as custom repository into your HACS
 - Restart Home Assistant
