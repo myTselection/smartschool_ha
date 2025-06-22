@@ -68,7 +68,7 @@ The sensor also shows the last update from Smartschool in the attribut last_upda
   - **Schooltas** (`todo.schooltas_[username]`):
     - overview of all "Meebrengen" for next planned schoolday (next day or next day after weekend/holiday)
     - overview of all lessons that will take place the next planned schoolday (next day or next day after weekend/holiday)
-    - with this checklist, it's easy to validate all stuff that should be in the schoolbag is foreseen
+    - with this checklist, it's easy to validate all stuff that should be in the schoolbag
   - **Meebrengen** (`todo.meebrengen_[username]`):
     - within list "Meebrengen", the title will be the item to bring, while the description will be the course info
     - for other lists, the title contains the course name and the description contains the details of the action
