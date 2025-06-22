@@ -11,7 +11,7 @@
 [Smartschool](https://www.smartschool.be/) Home Assistant custom component. This custom component has been built from the ground up to bring your Smartschool details into Home Assistant to help you towards a better follow up on your school. This integration is built against the public website provided by Smartschool and has not been tested for any other countries.
 
 This integration is in no way affiliated with Smartschool. 
-| :warning: Please don't report issues with this integration to Smartschool, they will not be able to support you.** |
+| :warning: Please don't report issues with this integration to Smartschool, they will not be able to support you. |
 | ----------------------------------------------------------------------------------------------------------------------|
 
 
