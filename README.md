@@ -1,4 +1,4 @@
-
+[![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://github.com/hacs/default)
 [![GitHub release](https://img.shields.io/github/release/myTselection/smartschool_ha.svg)](https://github.com/myTselection/smartschool_ha/releases)
 ![GitHub repo size](https://img.shields.io/github/repo-size/myTselection/smartschool_ha.svg)
 
@@ -21,9 +21,10 @@ This application has been [forked and extended](https://github.com/myTselection/
 <p align="center"><img src="https://github.com/myTselection/smartschool_ha/blob/main/logo.png?raw=true" width="500"/></p>
 
 ## Installation
-- [HACS](https://hacs.xyz/): (awaiting [brands](https://github.com/home-assistant/brands/pull/7235) HACS approval: search for Smartschool in HACS integrations and install)
+- [HACS](https://hacs.xyz/): search for Smartschool in HACS integrations and install
   - [![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg?style=flat-square)](https://my.home-assistant.io/redirect/hacs_repository/?owner=myTselection&repository=smartschool_ha&category=integration)
   - or add this repository as custom repository into your HACS
+  - or merge this repo 'custom components' folder into your local HA 'custom components' folder
 - Restart Home Assistant
 - Add 'Smartschool' integration via HA Settings > 'Devices and Services' > 'Integrations'
 - Provide Smartschool credentials:
