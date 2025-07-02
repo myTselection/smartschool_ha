@@ -8,7 +8,9 @@
 
 
 # Smartschool Home Assistant integration
-[Smartschool](https://www.smartschool.be/) Home Assistant custom component. This custom component has been built from the ground up to bring your Smartschool details into Home Assistant to help you towards a better follow up on your school. This integration is built against the public website provided by Smartschool and has not been tested for any other countries.
+[Smartschool](https://www.smartschool.be/) Home Assistant custom component. This custom component was developed from scratch to integrate Smartschool data into Home Assistant, making it easier to stay on top of school-related tasks. It connects to the public Smartschool website and is designed specifically for use in supported regions; it has not been tested for other countries.
+
+While the official Smartschool mobile app offers more features and details, I personally found it challenging to keep track of my children's homework. That’s why I created this integration — to provide a simple checklist that allows me or my kids to tick off tasks as they’re completed. Multiple types of checklists will be created: for tracking homework due the next school day, packing schoolbag essentials, managing all upcoming assignments, and keeping track of all upcoming lessons to study. Item check-offs are handled locally within Home Assistant; completed actions are not synced back to Smartschool. Older homework and activities are automatically removed as soon as the due day has passed.
 
 This integration is in no way affiliated with Smartschool. 
 | :warning: Please don't report issues with this integration to Smartschool, they will not be able to support you. |
@@ -16,7 +18,6 @@ This integration is in no way affiliated with Smartschool.
 
 
 This integration has been based on the python application of [https://github.com/IntelCoreI6/smartschool_mcp](https://github.com/IntelCoreI6/smartschool_mcp) (fork of [https://github.com/svaningelgem/smartschool](https://github.com/svaningelgem/smartschool)).
-
 This application has been [forked and extended](https://github.com/myTselection/smartschool_mcp) to support parallel sessions and to support authentication with Google Authenticator (2FA).
 <p align="center"><img src="https://github.com/myTselection/smartschool_ha/blob/main/logo.png?raw=true" width="500"/></p>
 
