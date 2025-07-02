@@ -8,7 +8,7 @@
 
 
 # Smartschool Home Assistant integration
-[Smartschool](https://www.smartschool.be/) Home Assistant custom component. This custom component was developed from scratch to integrate Smartschool data into Home Assistant, making it easier to stay on top of school-related tasks. It connects to the public Smartschool website and is designed specifically for use in supported regions; it has not been tested for other countries.
+[Smartschool](https://www.smartschool.be/) Home Assistant custom component. This custom component was developed from scratch to integrate Smartschool data into Home Assistant, making it easier to stay on top of school-related tasks. It connects to the public Smartschool website and is designed specifically for use in Belgium; it has not been tested for other countries. So far, it has only been tested with a single school. Based on feedback I'll see if any optimisations would be desired to better support other schools.
 
 While the official Smartschool mobile app offers more features and details, I personally found it challenging to keep track of my children's homework. That’s why I created this integration — to provide a simple checklist that allows me or my kids to tick off tasks as they’re completed. Multiple types of checklists will be created: for tracking homework due the next school day, packing schoolbag essentials, managing all upcoming assignments, and keeping track of all upcoming lessons to study. Item check-offs are handled locally within Home Assistant; completed actions are not synced back to Smartschool. Older homework and activities are automatically removed as soon as the due day has passed.
 
