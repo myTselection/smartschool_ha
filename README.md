@@ -22,6 +22,9 @@ This application has been [forked and extended](https://github.com/myTselection/
 <p align="center"><img src="https://github.com/myTselection/smartschool_ha/blob/main/logo.png?raw=true" width="500"/></p>
 
 ## Installation
+<details>
+<summary>Instructions</summary>
+  
 - [HACS](https://hacs.xyz/): search for Smartschool in HACS integrations and install
   - [![Open your Home Assistant instance and open the repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg?style=flat-square)](https://my.home-assistant.io/redirect/hacs_repository/?owner=myTselection&repository=smartschool_ha&category=integration)
   - or add this repository as custom repository into your HACS
@@ -36,9 +39,11 @@ This application has been [forked and extended](https://github.com/myTselection/
     - when using child account, this is by default the date of birth of the child, notation YYYY-MM-DD
     - when using a parent account or if 2FA has been enabled, the Google Authenticator secret is to be set (see Smartschool > Profile > Login with 2 steps > [Authenticator app](https://school.smartschool.be/profile/twofactor/googleAuthenticator)). If the secret is not known, the Authenticator app will need to be re-linked. During setup of the authenticator app, the 2FA secret can be shown instead of the QR code) 
 
+</details>
+
 ## Usage
 
-After adding Smartschool account, a 3 sensors and 5 Todo lists will be added.
+After adding Smartschool account, sensors and todo lists will be added.
 
 ### Sensors:
 
@@ -53,7 +58,7 @@ The sensor also shows the number of read and total number of messages, as well a
 
 - **Results** (untested)
 A sensor `sensor.smartschool_[username]_[school]_results` will be added showing the total results.
-Since the results are not always available (some schools only make them available at sepcific intervals), this hasn't been tested yet. Extra results per course might be made availble later on, once tested.
+Since the results are not always available (some schools only make them available at specific intervals), this hasn't been tested yet. Extra results per course might be made availble later on, once tested.
 The sensor also shows the last update from Smartschool in the attribut last_update.
 
 
@@ -63,7 +68,7 @@ The sensor also shows the last update from Smartschool in the attribut last_upda
   - Only future tasks are fetched from Smartschool but no updates from Home Assistant are sent towards Smartschool.
   - Only items left todo as of today are listed, past items of previous days will automatically be removed of all Todo lists.
   - Each Todo list will contain the username between brackets to distinct the list of different users (if multiple accounts are linked).
-  - The Todo items can be checked, if the same item also appears in another list, it will be marked as checked in there as well.
+  - Some todo items may appear in multiple todo lists (eg list "toetsen" contains all planned tests, while the tests panned for next schoolday will also appear in the list "volgende"). If such item is ticked in one list, it will be marked as checked in the other todo lists as well.
   
   - **Volgende** (`todo.volgende_[username]`):
     - overview of all "Taken", "Toetsen", "Meebrengen" for next planned schoolday (next day or next day after weekend/holiday)
