@@ -198,38 +198,39 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
 
         #School bag list
-        next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d")
-        for agendaItem in self._agenda:
-            _LOGGER.debug(f"{DOMAIN} agendaItem: {agendaItem}, agendaItem.date: {agendaItem.date}, next_schoolday: {next_schoolday}")
-            agendaItemDate = datetime.strptime(f"{agendaItem.date}", "%Y-%m-%d")
-            if agendaItem.date == next_schoolday:
-                agendaItemHour = agendaItem.hourValue
-                if agendaItemHour:
-                    # Extract the start time part, example value: hourValue: 15:10 - 16:00
-                    start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
-                    # Combine date and time into a single datetime object
-                    start_datetime = datetime.strptime(f"{agendaItem.date} {start_time_str}", "%Y-%m-%d %H:%M")
-                course_icon = self._course_icons.get(agendaItem.course,"")
-                status = self._status_store.get_status(self._unique_user_id, agendaItem.momentID)
-                summary = f"{course_icon}{agendaItem.course} {agendaItem.hour}"
-                subjectline =  ((agendaItem.subject + ' ') if agendaItem.subject else '') + ((agendaItem.courseTitle + ' ') if agendaItem.courseTitle else '')
-                roomLine = ((agendaItem.classroom + ', ') if agendaItem.classroom else '') + (agendaItem.teacher if agendaItem.teacher else '')
-                timeLine = agendaItem.hourValue
-                # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
-                description = ((subjectline + '\n') if len(subjectline) > 0 else '') + ((roomLine + '\n') if len(roomLine) > 0 else '') + timeLine
-                agendatItemUid = f"{agendaItem.momentID}-{agendaItem.hourID}-{agendaItem.lessonID}-{agendaItem.date}-{agendaItem.activityID}"
-                valid_uids.add(agendatItemUid)
-                new_lists[current_list_schooltas].append(TodoItem(
-                    uid=agendatItemUid,
-                    summary=summary,
-                    status=TodoItemStatus(status),
-                    description=description,
-                    due=start_datetime
-                ))
-            elif agendaItemDate > next_schooldayDate:
-                break
-            else:
-                continue
+        if next_schoolday:
+            next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d")
+            for agendaItem in self._agenda:
+                _LOGGER.debug(f"{DOMAIN} agendaItem: {agendaItem}, agendaItem.date: {agendaItem.date}, next_schoolday: {next_schoolday}")
+                agendaItemDate = datetime.strptime(f"{agendaItem.date}", "%Y-%m-%d")
+                if agendaItem.date == next_schoolday:
+                    agendaItemHour = agendaItem.hourValue
+                    if agendaItemHour:
+                        # Extract the start time part, example value: hourValue: 15:10 - 16:00
+                        start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
+                        # Combine date and time into a single datetime object
+                        start_datetime = datetime.strptime(f"{agendaItem.date} {start_time_str}", "%Y-%m-%d %H:%M")
+                    course_icon = self._course_icons.get(agendaItem.course,"")
+                    status = self._status_store.get_status(self._unique_user_id, agendaItem.momentID)
+                    summary = f"{course_icon}{agendaItem.course} {agendaItem.hour}"
+                    subjectline =  ((agendaItem.subject + ' ') if agendaItem.subject else '') + ((agendaItem.courseTitle + ' ') if agendaItem.courseTitle else '')
+                    roomLine = ((agendaItem.classroom + ', ') if agendaItem.classroom else '') + (agendaItem.teacher if agendaItem.teacher else '')
+                    timeLine = agendaItem.hourValue
+                    # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
+                    description = ((subjectline + '\n') if len(subjectline) > 0 else '') + ((roomLine + '\n') if len(roomLine) > 0 else '') + timeLine
+                    agendatItemUid = f"{agendaItem.momentID}-{agendaItem.hourID}-{agendaItem.lessonID}-{agendaItem.date}-{agendaItem.activityID}"
+                    valid_uids.add(agendatItemUid)
+                    new_lists[current_list_schooltas].append(TodoItem(
+                        uid=agendatItemUid,
+                        summary=summary,
+                        status=TodoItemStatus(status),
+                        description=description,
+                        due=start_datetime
+                    ))
+                elif agendaItemDate > next_schooldayDate:
+                    break
+                else:
+                    continue
 
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
             _LOGGER.debug(f"{DOMAIN} valid uids: {valid_uids}, list {self._unique_user_id}")
