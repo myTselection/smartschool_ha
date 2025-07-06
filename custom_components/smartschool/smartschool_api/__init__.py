@@ -1,25 +1,11 @@
-import logging
-
-from .agenda import SmartschoolHours, SmartschoolLessons, SmartschoolMomentInfos
-from .courses import (
-    Courses,
-    TopNavCourses,
-    CourseDocuments,
-    FolderItem,
-    FileItem,
-    DocumentOrFolderItem
-)
-from .credentials import EnvCredentials, PathCredentials, Credentials, AppCredentials
-from .exceptions import (
-    SmartSchoolException, # Corrected casing
-    SmartSchoolAuthenticationError, # Corrected casing
-    SmartSchoolParsingError, # Corrected casing
-    SmartSchoolDownloadError # Corrected casing
-)
-from .file_fetch import download_document
-from .logger import setup_logger
+from .agenda import AgendaLesson, AgendaPoster, SmartschoolHours, SmartschoolLessons, SmartschoolMomentInfos
+from .courses import CourseCondensed, Courses, DocumentOrFolderItem, FileItem, FolderItem, InternetShortcut, TopNavCourses
+from .credentials import AppCredentials, Credentials, EnvCredentials, PathCredentials
+from .exceptions import SmartSchoolAuthenticationError, SmartSchoolDownloadError, SmartSchoolException, SmartSchoolParsingError
+from .future_tasks import FutureTasks
 from .messages import (
     AdjustMessageLabel,
+    Attachment,
     Attachments,
     BoxType,
     MarkMessageUnread,
@@ -31,54 +17,54 @@ from .messages import (
     SortField,
     SortOrder,
 )
-from .objects import FutureTasks, Course
 from .periods import Periods
-from .results import ResultDetail, Results
+from .planner import ApplicableAssignmentTypes, PlannedElements
+from .reports import Report, Reports
+from .results import Result, Results
 from .session import Smartschool
 from .student_support import StudentSupportLinks
-from pydantic.dataclasses import rebuild_dataclass
 
 __all__ = [
-    "PathCredentials",
-    "EnvCredentials",
+    "AdjustMessageLabel",
+    "AgendaLesson",
+    "AgendaPoster",
     "AppCredentials",
-    "Credentials",
-    "Smartschool",
-    "logger",
-    "Courses",
-    "TopNavCourses",
-    "CourseDocuments",
-    "FolderItem",
-    "FileItem",
-    "DocumentOrFolderItem",
-    "Results",
-    "Periods",
-    "FutureTasks",
-    "SortField",
-    "SortOrder",
+    "ApplicableAssignmentTypes",
+    "Attachment",
+    "Attachments",
     "BoxType",
+    "CourseCondensed",
+    "Courses",
+    "Credentials",
+    "DocumentOrFolderItem",
+    "EnvCredentials",
+    "FileItem",
+    "FolderItem",
+    "FutureTasks",
+    "InternetShortcut",
+    "MarkMessageUnread",
+    "Message",
     "MessageHeaders",
-    "StudentSupportLinks",
+    "MessageLabel",
+    "MessageMoveToArchive",
+    "MessageMoveToTrash",
+    "PathCredentials",
+    "Periods",
+    "PlannedElements",
+    "Report",
+    "Reports",
+    "Result",
+    "Results",
+    "SmartSchoolAuthenticationError",
+    "SmartSchoolDownloadError",
+    "SmartSchoolException",
+    "SmartSchoolParsingError",
+    "Smartschool",
     "SmartschoolHours",
     "SmartschoolLessons",
     "SmartschoolMomentInfos",
-    "Message",
-    "Attachments",
-    "MarkMessageUnread",
-    "AdjustMessageLabel",
-    "MessageMoveToArchive",
-    "MessageMoveToTrash",
-    "MessageLabel",
-    "ResultDetail",
-    "download_document",
-    # Exceptions
-    "SmartSchoolException", # Corrected casing
-    "SmartSchoolAuthenticationError", # Corrected casing
-    "SmartSchoolParsingError", # Corrected casing
-    "SmartSchoolDownloadError", # Corrected casing
+    "SortField",
+    "SortOrder",
+    "StudentSupportLinks",
+    "TopNavCourses",
 ]
-
-logger = setup_logger(logging.DEBUG)
-
-rebuild_dataclass(FutureTasks)
-rebuild_dataclass(Course)

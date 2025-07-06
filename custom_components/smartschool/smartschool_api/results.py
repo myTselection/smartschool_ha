@@ -1,17 +1,42 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
+from dataclasses import dataclass
 from itertools import count
-from typing import Iterator
+from typing import TYPE_CHECKING
 
-from .exceptions import SmartSchoolDownloadError
-from .objects import Result, ResultWithDetails
-from .session import Smartschool
+from . import objects
+from .session import SessionMixin
 
-__all__ = ["Results", "ResultDetail"]
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+__all__ = ["Results"]
 
 RESULTS_PER_PAGE = 50
 
 
-class Results:
+@dataclass
+class Result(objects.Result, SessionMixin):
+    def __getattribute__(self, name: str):
+        attr = super().__getattribute__(name)
+        if name != "details":
+            return attr
+
+        if attr is not None:
+            return attr
+
+        data = self.session.json(f"/results/api/v1/evaluations/{self.identifier}")
+        details_obj = objects.Result(**data)
+        super().__setattr__("details", details_obj.details)
+        return details_obj.details
+
+
+@dataclass
+class Results(SessionMixin, Iterable[Result]):
     """
     Interfaces with the evaluations of smartschool.
 
@@ -25,32 +50,12 @@ class Results:
 
     """
 
-    smartschool: Smartschool  # Injected instance
-    def __init__(self, smartschool: Smartschool):
-        self.smartschool = smartschool
-
     def __iter__(self) -> Iterator[Result]:
         for page_nr in count(start=1):  # pragma: no branch
-            downloaded_webpage = self.smartschool.get(f"/results/api/v1/evaluations/?pageNumber={page_nr}&itemsOnPage={RESULTS_PER_PAGE}")
-            if not downloaded_webpage or not downloaded_webpage.content:
-                raise SmartSchoolDownloadError("No JSON was returned for the results?!")
+            data = self.session.json(f"/results/api/v1/evaluations/?pageNumber={page_nr}&itemsOnPage={RESULTS_PER_PAGE}")
+            for result in data:
+                pyd = objects.Result(**result)
+                yield Result(session=self.session, **pyd.__dict__)
 
-            json = downloaded_webpage.json()
-            for result in json:
-                yield Result(**result)
-
-            if len(json) < RESULTS_PER_PAGE:
+            if len(data) < RESULTS_PER_PAGE:
                 break
-
-
-class ResultDetail:
-    def __init__(self, result_id: str):
-        self.result_id = result_id
-
-    def get(self) -> ResultWithDetails:
-        downloaded_webpage = self.smartschool.get(f"/results/api/v1/evaluations/{self.result_id}")
-        if not downloaded_webpage or not downloaded_webpage.content:
-            raise SmartSchoolDownloadError("No JSON was returned for the details?!")
-
-        json = downloaded_webpage.json()
-        return ResultWithDetails(**json)

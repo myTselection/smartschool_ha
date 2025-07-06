@@ -93,7 +93,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 self._future_tasks = await self._hass.async_add_executor_job(lambda: self._session.getFutureTasks())
                 _LOGGER.debug(f"{DOMAIN} external data: {self._future_tasks}")
                 
-                agenda_timestamp_to_use = datetime.now()
+                agenda_timestamp_to_use = datetime.now().astimezone()
                 self._agenda = await self._hass.async_add_executor_job(lambda: self._session.getAgenda(agenda_timestamp_to_use))
                 _LOGGER.debug(f"{DOMAIN} update login completed")
 

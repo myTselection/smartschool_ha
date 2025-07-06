@@ -1,26 +1,35 @@
 from __future__ import annotations
 
+import base64
 from abc import ABC
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Iterator
+from typing import TYPE_CHECKING
 from urllib.parse import quote_plus
 
+from . import objects
 from ._xml_interface import SmartschoolXML, SmartschoolXML_NoCache
-from .objects import Attachment, FullMessage, MessageChanged, MessageDeletionStatus, ShortMessage
-from .session import Smartschool
+from .objects import FullMessage, MessageChanged, MessageDeletionStatus, ShortMessage
+from .session import SessionMixin
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from .session import Smartschool
 
 __all__ = [
-    "SortField",
-    "SortOrder",
-    "BoxType",
-    "MessageHeaders",
-    "Message",
-    "Attachments",
-    "MarkMessageUnread",
     "AdjustMessageLabel",
+    "Attachment",
+    "Attachments",
+    "BoxType",
+    "MarkMessageUnread",
+    "Message",
+    "MessageHeaders",
+    "MessageLabel",
     "MessageMoveToArchive",
     "MessageMoveToTrash",
-    "MessageLabel",
+    "SortField",
+    "SortOrder",
 ]
 
 
@@ -57,6 +66,7 @@ class _MessagesPoster:
     _url = "/?module=Messages&file=dispatcher"
 
 
+@dataclass
 class MessageHeaders(_MessagesPoster, SmartschoolXML_NoCache):
     """
     Interfaces the mailbox principle in Smartschool.
@@ -72,20 +82,10 @@ class MessageHeaders(_MessagesPoster, SmartschoolXML_NoCache):
 
     """
 
-    def __init__(
-        self,
-        smartschool: Smartschool,
-        box_type: BoxType = BoxType.INBOX,
-        sort_by: SortField = SortField.DATE,
-        sort_order: SortOrder = SortOrder.DESC,
-        already_seen_message_ids: list[int] | None = None,
-    ):
-        super().__init__(smartschool=smartschool)
-
-        self.box_type = box_type
-        self.sort_by = sort_by
-        self.sort_order = sort_order
-        self.already_seen_message_ids = already_seen_message_ids or []
+    box_type: BoxType = BoxType.INBOX
+    sort_by: SortField = SortField.DATE
+    sort_order: SortOrder = SortOrder.DESC
+    already_seen_message_ids: list[int] | None = field(default_factory=list)
 
     @property
     def _subsystem(self) -> str:
@@ -116,9 +116,10 @@ class MessageHeaders(_MessagesPoster, SmartschoolXML_NoCache):
         return ShortMessage
 
 
+# Cannot have `@dataclass`
 class _FetchOneMessage(_MessagesPoster, SmartschoolXML, ABC):
-    def __init__(self, msg_id: int, box_type: BoxType = BoxType.INBOX):
-        super().__init__()
+    def __init__(self, session: Smartschool, msg_id: int, box_type: BoxType = BoxType.INBOX):
+        super().__init__(session=session)
 
         self.msg_id = msg_id
         self.box_type = box_type
@@ -180,6 +181,13 @@ class Message(_FetchOneMessage):
                 element[modify_this] = [element[modify_this]]
 
 
+@dataclass
+class Attachment(SessionMixin, objects.Attachment):
+    def download(self) -> bytes:
+        resp = self.session.get(f"/?module=Messages&file=download&fileID={self.fileID}&target=0")
+        return base64.b64decode(resp.content)
+
+
 class Attachments(_FetchOneMessage):
     """
     Interface to fetch one message based on its MessageID.
@@ -194,9 +202,6 @@ class Attachments(_FetchOneMessage):
     Poster griezelfestijn.pdf
 
     """
-    
-    def __init__(self, smartschool: Smartschool):
-        super().__init__(smartschool= smartschool)
 
     @property
     def _action(self) -> str:
@@ -234,9 +239,10 @@ class MarkMessageUnread(_FetchOneMessage):
         }
 
 
+# Cannot have `@dataclass`
 class AdjustMessageLabel(_FetchOneMessage):
-    def __init__(self, msg_id: int, box_type: BoxType = BoxType.INBOX, label: MessageLabel = MessageLabel.NO_FLAG):
-        super().__init__(msg_id, box_type)
+    def __init__(self, session: Smartschool, msg_id: int, box_type: BoxType = BoxType.INBOX, label: MessageLabel = MessageLabel.NO_FLAG):
+        super().__init__(session, msg_id, box_type)
         self.label = label
 
     @property
@@ -261,21 +267,21 @@ class AdjustMessageLabel(_FetchOneMessage):
         }
 
 
-class MessageMoveToArchive:
+@dataclass
+class MessageMoveToArchive(SessionMixin):
     """
     Archiving is weird.
 
     It's not following the XML protocol... Providing the same interface as the other XMLs though.
     """
 
-    def __init__(self, msg_id: int | list[int], smartschool: Smartschool):
-        super().__init__()
+    def __init__(self, session: Smartschool, msg_id: int | list[int]):
+        super().__init__(session=session)
 
         if not isinstance(msg_id, list):
             msg_id = [msg_id]
 
         self.msg_ids = msg_id
-        self.smartschool = smartschool
 
     def get(self) -> MessageChanged:
         return next(iter(self))
@@ -283,7 +289,7 @@ class MessageMoveToArchive:
     def __iter__(self) -> Iterator[MessageChanged]:
         construction = "&".join("msgIDs%5B%5D=" + quote_plus(str(msg_id)) for msg_id in self.msg_ids)
 
-        resp = self.smartschool.post(
+        resp = self.session.post(
             "/Messages/Xhr/archivemessages",
             data=construction,
             headers={
@@ -296,9 +302,10 @@ class MessageMoveToArchive:
             yield MessageChanged(id=msg_id, new=1 if msg_id in success else 0)
 
 
+# Cannot have `@dataclass`
 class MessageMoveToTrash(_MessagesPoster, SmartschoolXML_NoCache):
-    def __init__(self, msg_id: int):
-        super().__init__()
+    def __init__(self, session: Smartschool, msg_id: int):
+        super().__init__(session=session)
 
         self.msg_id = msg_id
 

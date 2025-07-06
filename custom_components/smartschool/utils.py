@@ -55,22 +55,22 @@ class ComponentSession(object):
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getFutureTasks(self):
-        return FutureTasks(smartschool=self.smartschool)
+        return FutureTasks(self.smartschool)
 
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getAgenda(self, timestamp_to_use: datetime | None = None):
-        agenda = list(SmartschoolLessons(smartschool=self.smartschool, timestamp_to_use=timestamp_to_use))
+        agenda = list(SmartschoolLessons(self.smartschool, timestamp_to_use=timestamp_to_use))
         return agenda
 
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getResults(self):
-        results = list(Results(smartschool=self.smartschool))
+        results = list(Results(self.smartschool))
         return results
     
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getMessages(self, timestamp_to_use: datetime | None = None):
-        agenda = list(MessageHeaders(smartschool=self.smartschool))
+        agenda = list(MessageHeaders(self.smartschool))
         return agenda

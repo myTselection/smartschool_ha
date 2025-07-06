@@ -1,42 +1,29 @@
 from __future__ import annotations
 
 import contextlib
-from abc import ABC, ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from datetime import date
-from typing import Dict
-from typing import TYPE_CHECKING, Iterator, TypeVar
+from typing import TYPE_CHECKING, TypeVar
 from xml.etree import ElementTree as ET
 from xml.sax.saxutils import quoteattr
+import logging
 
 from .common import xml_to_dict
-from .session import Smartschool
+from .session import SessionMixin
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
+    from collections.abc import Iterator
     from datetime import datetime
 
 _T = TypeVar("_T")
 
+logger = logging.getLogger(__name__) # Use a logger instance
 
-class _SmartschoolXMLMeta(ABCMeta):
-    """
-    The metaclass will ONLY create this cache dictionary ones per class instantiation.
+@dataclass
+class SmartschoolXML(ABC, SessionMixin):
+    cache: dict = field(default_factory=dict)
 
-    Effectively giving each derived class I make their own dictionary.
-    """
-
-    def __new__(cls, name, bases, dct):
-        # dct["cache"] = {}
-        return super().__new__(cls, name, bases, dct)
-
-
-
-class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
-    cache: Dict = None
-    smartschool: Smartschool  # Injected instance
-
-    def __init__(self, smartschool: Smartschool):
-        self.cache = {}
-        self.smartschool = smartschool
     def _construct_command(self) -> str:
         txt = "<request><command>"
         txt += f"<subsystem>{self._subsystem}</subsystem>"
@@ -81,9 +68,9 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
     def _xml(self):
         with contextlib.suppress(KeyError):
             return self._get_from_cache()
-        
-        # print(f"Request: {self._url} : {self._construct_command()}")
-        response = self.smartschool.post(
+
+        response = self.session.request(
+            "POST",
             self._url,
             data={
                 "command": self._construct_command(),
@@ -92,7 +79,8 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
                 "X-Requested-With": "XMLHttpRequest",
             },
         )
-        # print(f"Response: {response.text}")
+
+        logger.info(f"Response: {response.text}, command: {self._construct_command()}")
 
         root = ET.fromstring(response.text)
 
@@ -101,7 +89,12 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
         for el in root.findall(self._xpath):
             as_dict = xml_to_dict(el)
             self._post_process_element(as_dict)
+
+            if SessionMixin in as_obj.__mro__:
+                as_dict["session"] = self.session
+
             obj = as_obj(**as_dict)
+
             all_entries.append(obj)
 
         self._store_into_cache(all_entries)
@@ -137,10 +130,9 @@ class SmartschoolXML(ABC, metaclass=_SmartschoolXMLMeta):
         """By default, this doesn't do anything, but you can adjust the parsed XML when needed."""
 
 
+@dataclass
 class SmartschoolXML_WeeklyCache(SmartschoolXML, ABC):
-    def __init__(self, smartschool: Smartschool, timestamp_to_use: datetime | None = None):
-        super().__init__(smartschool= smartschool)
-        self.timestamp_to_use = timestamp_to_use
+    timestamp_to_use: datetime | date | None = None
 
     @property
     def _cache_key(self):

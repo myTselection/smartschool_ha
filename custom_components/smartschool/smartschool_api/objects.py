@@ -1,40 +1,21 @@
+# pylint: disable=invalid-name
+
 from __future__ import annotations
 
-import base64
+import re
 from datetime import date, datetime
 from functools import cached_property
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Literal
 
 from pydantic import AliasChoices, BeforeValidator, constr
 from pydantic.dataclasses import Field, dataclass
 
-from .common import as_float
-from .session import Smartschool
+from .common import as_float, convert_to_date, convert_to_datetime
 
-# Keep the constr definition for Pydantic's use, but use 'str' for type hints
 String = constr(strip_whitespace=True)
+UUID = constr(pattern=re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", flags=re.IGNORECASE))
 
-
-def convert_to_datetime(x: str | datetime) -> datetime:
-    if isinstance(x, datetime):
-        if x.tzinfo is None:
-            raise ValueError("No timezone information found in this date")
-        return x
-
-    try:
-        return datetime.strptime(x, "%Y-%m-%dT%H:%M:%S%z")
-    except ValueError:  # 2023-11-16 08:24
-        return datetime.strptime(x, "%Y-%m-%d %H:%M")
-
-
-def convert_to_date(x: Optional[str]) -> date:
-    """Convert a date string in YYYY-MM-DD format to a date object."""
-    if x is None:
-        return date.today()  # Return today's date if input is None
-    return datetime.strptime(x, "%Y-%m-%d").date()
-
-
-# Url = Annotated[str, BeforeValidator(lambda x: session.create_url(x))]
+Url = String
 Date = Annotated[date, BeforeValidator(convert_to_date)]
 DateTime = Annotated[datetime, BeforeValidator(convert_to_datetime)]
 
@@ -42,15 +23,15 @@ DateTime = Annotated[datetime, BeforeValidator(convert_to_datetime)]
 @dataclass
 class CourseGraphic:
     type: Literal["icon"]
-    value: str
+    value: String
 
 
 @dataclass
 class ResultGraphic:
-    """Represents the graphical part of a result."""
-
-    color: Literal["green", "red", "yellow"]
-    symbol: str
+    type: Literal["percentage"]
+    color: Literal["green", "red", "olive", "yellow", "steel"]
+    value: int
+    description: String
 
     @cached_property
     def achieved_points(self) -> float:
@@ -67,18 +48,30 @@ class ResultGraphic:
 
 @dataclass
 class PersonDescription:
-    startingWithFirstName: str = ""
-    startingWithLastName: str = ""
+    startingWithFirstName: String = ""
+    startingWithLastName: String = ""
 
 
 @dataclass
 class _User:
-    id: str
-    pictureHash: str
-    pictureUrl: str
+    id: String
+    pictureHash: String
+    pictureUrl: Url
     description: PersonDescription
     name: PersonDescription
-    sort: str
+    sort: String
+    deleted: bool = False
+
+
+@dataclass
+class _Group:
+    identifier: String
+    id: String
+    platformId: int
+    name: String
+    type: String
+    icon: String
+    sort: String
 
 
 @dataclass
@@ -95,19 +88,19 @@ class SkoreWorkYear:
 
 @dataclass
 class Class_:
-    identifier: str
+    identifier: String
     id: int
     platformId: int
-    name: str
-    type: str
-    icon: str
+    name: String
+    type: String
+    icon: String
 
 
 @dataclass
 class Period:
     id: int
-    name: str
-    icon: str
+    name: String
+    icon: String
     skoreWorkYear: SkoreWorkYear
     isActive: bool
     class_: Class_ = Field(validation_alias=AliasChoices("class", "class_"))
@@ -116,18 +109,22 @@ class Period:
 @dataclass
 class Component:
     id: int
-    name: str
-    abbreviation: str
+    name: String
+    abbreviation: String
 
 
-Teacher = _User
-Student = _User
+@dataclass
+class Teacher(_User): ...
+
+
+@dataclass
+class Student(_User): ...
 
 
 @dataclass
 class Course:
     id: int
-    name: str
+    name: String
     graphic: CourseGraphic
     teachers: list[Teacher]
     skoreClassId: int
@@ -135,35 +132,43 @@ class Course:
     skoreWorkYear: SkoreWorkYear
     class_: Class_ = Field(validation_alias=AliasChoices("class", "class_"))
 
+    def __str__(self):
+        ret = f"{self.name} (Teacher"
+        if len(self.teachers) != 1:
+            ret += "s"
+        ret += f": {', '.join(t.name.startingWithLastName for t in self.teachers)}"
+        # ret += f", ID: {self.id}"
+        return ret + ")"
+
 
 @dataclass
 class Feedback:
-    text: str
+    text: String
     user: Teacher
 
 
 @dataclass
 class FeedbackFull:
-    attachments: list[str]
+    attachments: list[String]
     changedAt: DateTime
     createdAt: DateTime
-    evaluationId: str
-    id: str
+    evaluationId: String
+    id: String
     student: Student
     teacher: Teacher
-    text: str
+    text: String
 
 
 @dataclass
 class Result:
-    identifier: str
+    identifier: String
     type: Literal["normal"]
-    name: str
+    name: String
     graphic: ResultGraphic
     date: DateTime
 
     gradebookOwner: Teacher
-    component: Component
+    component: Component | None
     courses: list[Course]
     period: Period
     feedback: list[Feedback]
@@ -171,11 +176,14 @@ class Result:
     availabilityDate: DateTime
     isPublished: bool
     doesCount: bool
+    deleted: bool = False
+
+    details: ResultDetails | None = None
 
 
 @dataclass
 class ResultDetails:
-    centralTendencies: list[str]
+    centralTendencies: list[String]
     teachers: list[Teacher]
     dateChanged: DateTime
     userChanged: Teacher
@@ -183,194 +191,140 @@ class ResultDetails:
 
 
 @dataclass
-class ResultWithDetails(Result):
-    details: ResultDetails
-
-
-@dataclass
 class CourseCondensed:
-    name: str
-    teacher: str
-    url: str
+    name: String
+    teacher: String
+    url: Url = Field()
 
-    descr: str = Field(repr=False, default="")
-    icon: str = Field(repr=False, default="")
+    id: int | None = Field(repr=False, default=None)
+    platformId: int | None = Field(repr=False, default=None)
+
+    descr: String = Field(repr=False, default="")
+    icon: String = Field(repr=False, default="")
 
 
 @dataclass
 class FutureTaskOneTask:
-    label: str
-    description: str
-    icon: str
+    label: String
+    description: String
+    icon: String
     warning: bool
-    click_handle: str
+    click_handle: String
     activityID: int
-    dateID: str
-    assignmentID: str
-    endMomentTS: str | None
-    startMomentID: str
-    endMomentID: str
-    lessonID: str
-    type: str
-    classID: str
-    course: str
+    dateID: String
+    assignmentID: String
+    endMomentTS: String | None
+    startMomentID: String
+    endMomentID: String
+    lessonID: String
+    type: String
+    classID: String
+    course: String
     date: Date
-    hourID: str
+    hourID: String
 
 
 @dataclass
 class FutureTaskOneItem:
     tasks: list[FutureTaskOneTask]
-    materials: list[str]
+    materials: list[String]
 
 
 @dataclass
 class FutureTaskOneCourse:
-    lessonID: str
-    hourID: str
-    classID: str
-    course_title: str
+    lessonID: String
+    hourID: String
+    classID: String
+    course_title: String
     items: FutureTaskOneItem
 
 
 @dataclass
 class FutureTaskOneDay:
     date: Date
-    pretty_date: str
+    pretty_date: String
     courses: list[FutureTaskOneCourse]
 
 
 @dataclass
-class FutureTasks:
-    """
-    Class that interfaces the retrieval of any task that needs to be made in the near future.
-
-    Example:
-    -------
-    >>> for day in FutureTasks().days:
-    >>>     for course in day.courses:
-    >>>         print("Course:", course.course_title)
-    >>>         for task in course.items.tasks:
-    >>>             print("Task:", task.description)
-    Course: 2 - AAR1, Lotte Peeters
-    Task: Toets 3. De koolstofcyclus in het systeem aarde pagina 42 - 47
-
-    """
-
-    smartschool: Smartschool
-    days: list[FutureTaskOneDay] = Field(default_factory=list)
-    last_assignment_id: int = 0
-    last_date: Date = Field(default_factory=date.today)
-
-    def __post_init__(self):
-        """I need to do this here because when I do it in Agenda, it'll not lazily load it. But in this way, I load it on construction."""
-        json = self.smartschool.json(
-            "/Agenda/Futuretasks/getFuturetasks",
-            method="post",
-            data={
-                "lastAssignmentID": 0,
-                "lastDate": "",
-                "filterType": "false",
-                "filterID": "false",
-            },
-            headers={
-                "X-Requested-With": "XMLHttpRequest",
-            },
-        )
-
-        self.days = []
-        for d in json["days"]:
-            self.days.append(FutureTaskOneDay(**d))
-
-        self.last_assignment_id = json["last_assignment_id"]
-        self.last_date = convert_to_date(json["last_date"])
-
-
-@dataclass
 class AgendaHour:
-    hourID: str
-    start: str
-    end: str
-    title: str
+    hourID: String
+    start: String
+    end: String
+    title: String
 
 
 @dataclass
 class AgendaLesson:
-    momentID: str
-    lessonID: str
-    hourID: str
+    momentID: String
+    lessonID: String
+    hourID: String
     date: Date
-    subject: str | None
-    course: str
-    courseTitle: str
-    classroom: str | None
-    classroomTitle: str | None
-    teacher: str | None
-    teacherTitle: str | None
-    klassen: str
-    klassenTitle: str
-    classIDs: str
-    bothStartStatus: str
-    assignmentEndStatus: str
-    testDeadlineStatus: str
-    noteStatus: str
-    note: str | None
-    date_listview: str
-    hour: str
-    activity: str
-    activityID: str | None
-    color: str
-    hourValue: str
+    subject: String | None
+    course: String
+    courseTitle: String
+    classroom: String
+    classroomTitle: String
+    teacher: String
+    teacherTitle: String
+    klassen: String
+    klassenTitle: String
+    classIDs: String
+    bothStartStatus: String
+    assignmentEndStatus: String
+    testDeadlineStatus: String
+    noteStatus: String
+    note: String | None
+    date_listview: String
+    hour: String
+    activity: String
+    activityID: String | None
+    color: String
+    hourValue: String
     components_hidden: object
-    freedayIcon: str
-    someSubjectsEmpty: str | None
-
-    @property
-    def hour_details(self) -> AgendaHour:
-        from .agenda import SmartschoolHours
-
-        return SmartschoolHours().search_by_hourId(self.hourID)
+    freedayIcon: String
+    someSubjectsEmpty: String | None
 
 
 @dataclass
 class AgendaMomentInfoAssignment:
-    startAssignment: str
-    start: str
-    end: str
-    type: str
-    description: str
-    atdescription: str
-    freedeadline: str
-    warning: str
-    assignmentInfo: str
-    assignmentDeadline: str
+    startAssignment: String
+    start: String
+    end: String
+    type: String
+    description: String
+    atdescription: String
+    freedeadline: String
+    warning: String
+    assignmentInfo: String
+    assignmentDeadline: String
 
 
 @dataclass
 class AgendaMomentInfo:
-    className: str
-    subject: str
-    materials: str | None
-    momentID: str
+    className: String
+    subject: String
+    materials: String | None
+    momentID: String
     assignments: list[AgendaMomentInfoAssignment]
 
 
 @dataclass
 class StudentSupportLink:
-    id: str
-    name: str
-    description: str
-    icon: str
-    link: str
-    cleanLink: str
+    id: String
+    name: String
+    description: String
+    icon: String
+    link: Url
+    cleanLink: String
     isVisible: bool
 
 
 @dataclass
 class ShortMessage:
     id: int
-    fromImage: str
-    subject: str
+    fromImage: Url
+    subject: String
     date: DateTime
     status: int
     attachment: int
@@ -381,26 +335,26 @@ class ShortMessage:
     allowreplyenabled: bool
     hasreply: bool
     hasForward: bool
-    realBox: str
+    realBox: String
     sendDate: DateTime | None
-    from_: str = Field(validation_alias=AliasChoices("from", "from_"))
+    from_: String = Field(validation_alias=AliasChoices("from", "from_"))
 
 
 @dataclass
 class FullMessage:
     id: int
-    to: str | None
-    subject: str
+    to: String | None
+    subject: String
     date: DateTime
-    body: str
+    body: String
     status: int
     attachment: int
     unread: bool
     label: bool
-    receivers: list[str]
-    ccreceivers: list[str]
-    bccreceivers: list[str]
-    senderPicture: str
+    receivers: list[String]
+    ccreceivers: list[String]
+    bccreceivers: list[String]
+    senderPicture: String
     markedInLVS: None
     fromTeam: int
     totalNrOtherToReciviers: int
@@ -410,23 +364,18 @@ class FullMessage:
     hasReply: bool
     hasForward: bool
     sendDate: DateTime | None
-    from_: str = Field(validation_alias=AliasChoices("from", "from_"))
+    from_: String = Field(validation_alias=AliasChoices("from", "from_"))
 
 
 @dataclass
 class Attachment:
     fileID: int
-    name: str
-    mime: str
-    size: str
-    icon: str
+    name: String
+    mime: String
+    size: String
+    icon: String
     wopiAllowed: bool
     order: int
-    smartschool: Smartschool
-
-    def download(self) -> bytes:
-        resp = self.smartschool.get(f"/?module=Messages&file=download&fileID={self.fileID}&target=0")
-        return base64.b64decode(resp.content)
 
 
 @dataclass
@@ -438,30 +387,158 @@ class MessageChanged:
 @dataclass
 class MessageDeletionStatus:
     msgID: int
-    boxType: str
+    boxType: String
     is_deleted: bool = Field(validation_alias=AliasChoices("status", "is_deleted"))
 
 
 @dataclass
-class FileItem:
-    """Represents a file within a course document folder."""
-    id: int
-    name: str
-    description: str | None
-    mime_type: str
-    size_kb: float
-    last_modified: datetime
-    download_url: str # URL to download the file directly
-    view_url: str | None # URL to view the file online (e.g., WOPI)
+class PlannedElementPeriod:
+    dateTimeFrom: datetime
+    dateTimeTo: datetime
+    wholeDay: bool
+    deadline: bool
 
 
 @dataclass
-class FolderItem:
-    """Represents a subfolder within a course document folder."""
-    id: int
-    name: str
-    description: str | None
-    browse_url: str # URL to browse the contents of this folder
+class PlannedElementOrganisers:
+    users: list[_User]
 
-# Define the Union type for items found in document folders
-DocumentOrFolderItem = Union[FileItem, FolderItem]
+
+@dataclass
+class GroupFilters:
+    filters: list
+    additionalUsers: list[_User]
+
+
+@dataclass
+class PlannedElementParticipants:
+    groups: list[_Group]
+    users: list[_User]
+    groupFilters: GroupFilters
+
+
+@dataclass
+class UserSeeProperties:
+    id: bool
+    platformId: bool
+    period: bool
+    organisers: bool
+    participants: bool
+    plannedElementType: bool
+    isParticipant: bool
+    capabilities: bool
+    courses: bool
+    locations: bool
+    name: bool = False
+
+
+@dataclass
+class UserCapabilities:
+    canUserTrash: bool
+    canUserRestoreFromTrash: bool
+    canUserDelete: bool
+    canUserEdit: bool
+    canUserReplace: bool
+    canUserEditPresence: bool
+    canUserReschedule: bool
+    canUserChangeUserColor: bool
+    canUserChangeUserViewMetadata: bool
+    canUserSeeProperties: UserSeeProperties
+
+    canUserChangeOrganisers: bool = False
+    canUserChangeParticipants: bool = False
+    canUserChangeParticipantGroupFilters: bool = False
+    canUserChangeCourses: bool = False
+    canUserChangeLocations: bool = False
+    canUserCreateVideoCall: bool = False
+    canUserSeeVideoCall: bool = False
+    canUserManageVideoCall: bool = False
+
+
+@dataclass
+class PlannedElementCourseCluster:
+    id: int
+    name: String
+
+
+@dataclass
+class PlannedElementCourse:
+    id: UUID
+    platformId: int
+    name: String
+    scheduleCodes: list[String]
+    icon: String
+    courseCluster: PlannedElementCourseCluster
+    isVisible: bool
+
+
+@dataclass
+class PlannedElementLocation:
+    id: UUID
+    platformId: int
+    platformName: String
+    number: String
+    title: String
+    icon: String
+    type: String
+    selectable: bool
+
+
+@dataclass
+class PlannedElementJoinIds:
+    from_: String = Field(validation_alias=AliasChoices("from", "from_"))
+    to: String = Field(alias="to")
+
+
+@dataclass
+class PlannedElementAssignmentType:
+    id: UUID
+    name: String
+    abbreviation: String
+    isVisible: bool
+    weight: int
+
+
+@dataclass
+class PlannedElement:
+    id: UUID
+    platformId: int
+    period: PlannedElementPeriod
+    organisers: PlannedElementOrganisers
+    participants: PlannedElementParticipants
+    plannedElementType: String
+    isParticipant: bool
+    capabilities: UserCapabilities
+    courses: list[PlannedElementCourse]
+    locations: list[PlannedElementLocation]
+    sort: String
+    unconfirmed: bool
+    pinned: bool
+    color: String
+    joinIds: PlannedElementJoinIds
+
+    name: String = ""
+    assignmentType: PlannedElementAssignmentType | None = None
+    resolvedStatus: String = ""
+    onlineSession: String | None = None
+
+
+@dataclass
+class ApplicableAssignmentType:
+    id: UUID
+    platformId: int
+    name: String
+    abbreviation: String
+    isVisible: bool
+    weight: float
+
+
+@dataclass
+class Report:
+    id: int
+    name: String
+    icon: String
+    date: DateTime
+    downloadUrl: Url
+    class_: Class_ = Field(validation_alias=AliasChoices("class", "class_"))
+    schoolyearLabel: String = Field()

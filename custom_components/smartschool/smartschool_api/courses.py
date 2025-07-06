@@ -1,31 +1,52 @@
 from __future__ import annotations
 
-from datetime import datetime # Keep datetime for parsing
-from functools import cached_property
-import logging
 import re
-from typing import Iterator # Removed Union, Literal
+from dataclasses import dataclass, field
+from functools import cached_property
+from pathlib import Path
+from typing import TYPE_CHECKING, TypeAlias, overload
 
-from bs4 import BeautifulSoup, Tag
-# Removed Pydantic imports as models are now external
-# from pydantic import BaseModel, Field, computed_field
+# from logprise import logger
+import logging
 
-from .objects import Course, CourseCondensed
-from .session import Smartschool
-from .exceptions import SmartSchoolException, SmartSchoolParsingError, SmartSchoolDownloadError
-# Import the models from objects.py now
-from .objects import FileItem, FolderItem, DocumentOrFolderItem
+from . import objects
+from .common import (
+    bs4_html,
+    convert_to_datetime,
+    create_filesystem_safe_filename,
+    create_filesystem_safe_path,
+    natural_sort,
+    parse_mime_type,
+    parse_size,
+    save_test_response,
+)
+from .exceptions import SmartSchoolException, SmartSchoolParsingError
+from .objects import Course
+from .session import SessionMixin
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from datetime import datetime
+
+    from bs4 import BeautifulSoup, Tag
+    from requests import Response
+
+logger = logging.getLogger(__name__) # Use a logger instance
+__all__ = ["CourseCondensed", "Courses", "DocumentOrFolderItem", "FileItem", "FolderItem", "InternetShortcut", "TopNavCourses"]
 
 
-# Removed DocumentItemBase, FolderItem, FileItem, DocumentOrFolderItem definitions
+@dataclass
+class CourseCondensed(objects.CourseCondensed, SessionMixin):
+    def __str__(self):
+        return f"{self.name} (Teacher: {self.teacher})"
 
-__all__ = ["Courses", "TopNavCourses", "CourseDocuments"] # Removed model names from __all__
+    @property
+    def items(self) -> list[DocumentOrFolderItem]:
+        return FolderItem(session=self.session, parent=None, course=self, name="(Root)").items
 
-# Setup logger for this module
-logger = logging.getLogger(__name__)
 
-
-class TopNavCourses:
+@dataclass
+class TopNavCourses(SessionMixin):
     """
     Retrieves a list of the courses which are available from the top navigation bar.
 
@@ -33,25 +54,23 @@ class TopNavCourses:
 
     Example:
     -------
-    >>> for course in TopNavCourses():
+    >>> for course in TopNavCourses(session):
     >>>     print(course.name)
     Aardrijkskunde_3_LOP_2023-2024
     bibliotheek
 
     """
 
-    smartschool: Smartschool  # Injected instance
-    def __init__(self, smartschool: Smartschool):
-        self.smartschool = smartschool
     @cached_property
     def _list(self) -> list[CourseCondensed]:
-        return [CourseCondensed(**course) for course in self.smartschool.json("/Topnav/getCourseConfig", method="post")["own"]]
+        return [CourseCondensed(session=self.session, **course) for course in self.session.json("/Topnav/getCourseConfig", method="post")["own"]]
 
     def __iter__(self) -> Iterator[CourseCondensed]:
         yield from self._list
 
 
-class Courses:
+@dataclass
+class Courses(SessionMixin):
     """
     Retrieves a list of the courses.
 
@@ -61,223 +80,326 @@ class Courses:
 
     Example:
     -------
-    >>> for course in Courses():
+    >>> for course in Courses(session):
     >>>     print(course.name)
     Aardrijkskunde
     Biologie
 
     """
 
-    smartschool: Smartschool  # Injected instance
-    def __init__(self, smartschool: Smartschool):
-        self.smartschool = smartschool
-
     @cached_property
     def _list(self) -> list[Course]:
-        return [Course(**course) for course in self.smartschool.json("/results/api/v1/courses/")]
+        return [Course(**course) for course in self.session.json("/results/api/v1/courses/")]
 
     def __iter__(self) -> Iterator[Course]:
         yield from self._list
 
 
-class CourseDocuments:
-    """
-    Fetches the HTML representation of the document folder structure for a specific course
-    and provides methods to parse and list its contents.
+@dataclass
+class FileItem(SessionMixin):
+    """Represents a file within a course document folder."""
 
-    Requires a course ID to initialize. The `get_folder_html` method can optionally
-    take a folder ID (`ssID`) to fetch a specific subfolder's structure.
-    The `list_folder_contents` method parses this HTML to return a list of files and folders.
+    parent: FolderItem = field(repr=False)
+    id: int
+    name: str
+    mime_type: str
+    size_kb: float | str
+    last_modified: datetime | str
+    download_url: str | None = None
+    view_url: str | None = None
 
-    Example:
-    -------
-    >>> course_docs = CourseDocuments(course_id=4128)
-    >>> root_html = course_docs.get_folder_html() # Get root folder HTML
-    >>> subfolder_html = course_docs.get_folder_html(folder_id=65) # Get specific folder HTML
-    >>> items = course_docs.list_folder_contents(folder_id=65) # List contents of specific folder
-    >>> for item in items:
-    >>>     print(f"{item.type}: {item.name}")
-    """
-    smartschool: Smartschool  # Injected instance
-    def __init__(self, course_id: int, smartschool: Smartschool):
-        self.smartschool = smartschool
-        if not isinstance(course_id, int) or course_id <= 0:
-            raise ValueError("course_id must be a positive integer.")
-        self.course_id = course_id
-        self._base_path = f"/Documents/Index/Index/courseID/{self.course_id}"
+    def __post_init__(self):
+        self.mime_type = parse_mime_type(self.mime_type)
+        self.size_kb = parse_size(self.size_kb)
+        self.last_modified = convert_to_datetime(self.last_modified)
 
-    def get_folder_html(self, folder_id: int | None = None) -> str:
-        """
-        Fetches the HTML content for a specific folder within the course documents.
+    @cached_property
+    def _suffix(self) -> str:
+        match self.mime_type:
+            case "docx" | "word":
+                return ".docx"
+            case "doc":
+                return ".doc"
+            case "xlsx" | "excel" | "xls":
+                return ".xlsx"
+            case "odt":
+                return ".odt"
+            case "pdf":
+                return ".pdf"
+            case "powerpointpresentatie" | "pptx":
+                return ".pptx"
+            case "ppt":
+                return ".ppt"
+            case "video" | "m4v" | "mp4":
+                return ".mp4"
+            case "wmv":
+                return ".wmv"
+            case "audio" | "mp3":
+                return ".mp3"
+            case "zip":
+                return ".zip"
+            case "rar":
+                return ".rar"
+            case "7z":
+                return ".7z"
+            case "text" | "txt":
+                return ".txt"
+            case "jpg" | "jpeg":
+                return ".jpg"
+            case "png":
+                return ".png"
+            case "html":
+                return ".html"
+            case "ascii":
+                return ".txt"
+            case "potx":
+                return ".potx"
 
-        Args:
-            folder_id: The specific folder ID (`ssID`) to fetch. If None, fetches the
-                       root document folder for the course.
+        logger.warning(f"Unknown mime type: {self.mime_type}")
+        return f".{self.mime_type}"
 
-        Returns:
-            The raw HTML content of the folder page as a string.
+    @cached_property
+    def filename(self) -> str:
+        filename = self.name
+        if "." not in self.name:
+            filename += self._suffix
 
-        Raises:
-            SmartSchoolException: If the request fails or returns an error status.
-        """
-        target_path = self._base_path
-        if folder_id is not None:
-            if not isinstance(folder_id, int) or folder_id <= 0:
-                raise ValueError("folder_id must be a positive integer if provided.")
-            target_path += f"/ssID/{folder_id}"
+        return create_filesystem_safe_filename(filename)
 
-        # Define headers - minimal set, session handles cookies
-        headers = {
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "Referer": self.smartschool.create_url("/") # Referer might be important
-        }
+    def download_to_dir(self, target_directory: Path, *, overwrite: bool = False) -> Path:
+        return self.download(target_directory / self.filename, overwrite=overwrite)
 
+    @overload
+    def download(self, to_file: Path | str, *, overwrite: bool) -> Path: ...
+
+    @overload
+    def download(self) -> bytes: ...
+
+    def _real_download(self, target: Path | None) -> bytes | Path:
+        if target:
+            logger.debug(f"Downloading file: {target.name}")
+        response: Response = self.session.get(self.download_url)
+        response.raise_for_status()
+
+        if match := re.search(r'filename="([^"]+)"', response.headers.get("Content-Disposition") or ""):
+            found_filename = Path(match.group(1))
+            if found_filename.suffix != self._suffix:
+                logger.warning(f"Expected suffix {self._suffix}, got {found_filename.suffix}")
+
+        save_test_response(response)
+
+        if target:
+            target.write_bytes(response.content)
+            return target
+
+        return response.content
+
+    def download(self, to_file: Path | str | None = None, *, overwrite: bool = False) -> bytes | Path:
+        target = None
+        if to_file:
+            target = create_filesystem_safe_path(to_file)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not overwrite and target.exists():
+                return target
+
+        return self._real_download(target)
+
+
+@dataclass
+class InternetShortcut(FileItem):
+    """Represents an internet shortcut file within a course document folder."""
+
+    link: str = ""
+
+    def __post_init__(self):
+        super().__post_init__()
+
+        if not self.link:
+            raise SmartSchoolException("No link found in internet shortcut")
+
+    def _real_download(self, target: Path | None) -> bytes | Path:
+        content = "\r\n".join(
+            [
+                "[InternetShortcut]",
+                f"URL={self.link}",
+            ]
+        ).encode("utf8")
+        if target:
+            target.write_bytes(content)
+            return target
+
+        return content
+
+    @cached_property
+    def filename(self) -> str:
+        name = self.name
+        if "." in name:
+            name = name.rsplit(".", 1)[0]
+
+        return create_filesystem_safe_filename(name + ".url")
+
+
+@dataclass
+class FolderItem(SessionMixin):
+    """Represents a subfolder within a course document folder."""
+
+    parent: FolderItem | None = field(repr=False)
+    course: CourseCondensed = field(repr=False)
+    name: str = field()
+    browse_url: str | None = field(default=None, repr=False)
+
+    def __post_init__(self):
+        if self.browse_url is None:
+            self.browse_url = f"/Documents/Index/Index/courseID/{self.course.id}/ssID/{self.course.platformId}"
+
+    def _get_folder_html(self) -> BeautifulSoup:
+        """Fetch HTML content for a specific folder."""
         try:
-            response = self.smartschool.get(target_path, headers=headers)
-            response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
-            return response.text
+            response = self.session.get(
+                self.browse_url,
+                headers={
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Referer": self.session.create_url("/"),
+                },
+            )
+            response.raise_for_status()
+            save_test_response(response)
+            return bs4_html(response)
         except Exception as e:
-            # Wrap specific request errors or re-raise generic ones
-            raise SmartSchoolException(f"Failed to fetch document folder HTML for course {self.course_id}, folder {folder_id}: {e}") from e # Corrected casing
+            raise SmartSchoolException(f"Failed to fetch folder HTML: {e}") from e
 
-    def list_folder_contents(self, folder_id: int | None = None) -> list[DocumentOrFolderItem]:
-        """
-        Parses the HTML of a course document folder (table view, e.g., id='doclist')
-        and returns a list of its contents using models from file_fetch.py.
-
-        Args:
-            folder_id: The specific folder ID (`ssID`) to list contents for. If None,
-                       lists the contents of the root document folder for the course.
-
-        Returns:
-            A list of FolderItem and FileItem objects (defined in file_fetch.py).
-
-        Raises:
-            SmartSchoolParsingError: If the HTML structure cannot be parsed as expected.
-        """
-        html_content = self.get_folder_html(folder_id)
-        soup = BeautifulSoup(html_content, 'html.parser')
-
-        items: list[DocumentOrFolderItem] = []
-        # The `parent_id` for items *inside* this folder is `folder_id`.
-        # If folder_id is None (root), parent_id is likely 0.
-        containing_folder_id = folder_id if folder_id is not None else 0 # Assuming 0 for root's parent
-
-        doc_table = soup.find('table', id='doclist')
-        if not doc_table or not isinstance(doc_table, Tag):
-            logger.warning(f"Could not find table#doclist in course {self.course_id}, folder {folder_id}. This view might use divs (try file_fetch.browse_course_documents) or the structure changed.")
-            return []
-
-        tbody = doc_table.find('tbody')
-        if not tbody or not isinstance(tbody, Tag):
-             logger.warning(f"Could not find tbody within table#doclist for course {self.course_id}, folder {folder_id}.")
-             return []
-
-        rows = tbody.find_all('tr', recursive=False)
-
-        for row in rows:
-            if not isinstance(row, Tag): continue
-            cells = row.find_all('td', recursive=False)
-            if len(cells) < 5:
-                logger.debug(f"Skipping row with insufficient cells ({len(cells)}): {row.prettify()}")
+    def _get_mime_from_row_image(self, row: Tag) -> str | None:
+        for entry in row.select_one("div.smsc_cm_body_row_block").get("style").split(";"):
+            if not entry.strip():
                 continue
+            first, second = entry.split(":", 1)
+            if first.strip() == "background-image":
+                return re.search("/mime_[^_]+_([^/_]+)", second).group(1)
 
-            name_cell = cells[1]
-            link = name_cell.find('a', href=True)
-            if not link or not isinstance(link, Tag):
-                logger.debug(f"Skipping row without a valid link in the name cell: {row.prettify()}")
-                continue
+        return None
 
-            href = link['href']
-            name = link.get_text(strip=True)
-            if not name:
-                 logger.debug(f"Skipping row with empty name: {row.prettify()}")
-                 continue
+    def _parse_document_row(self, row: Tag) -> FileItem:
+        """Parse a single table row into a file item."""
+        id_ = int(row.get("id")[6:])
+        mime_block = row.select_one("div.smsc_cm_body_row_block_mime").get_text(strip=True, separator="\n")
+        _, size_kb, last_modified = mime_block.split(" - ")
+        mime_style = self._get_mime_from_row_image(row)
 
-            description = cells[2].get_text(strip=True) if len(cells) > 2 else None
-            size_str = cells[3].get_text(strip=True) if len(cells) > 3 else None
-            date_str = cells[4].get_text(strip=True) if len(cells) > 4 else None
+        link_texts = [link_text for r in row.select("a") if (link_text := r.get_text(strip=True, separator="\n"))]
+        if len(link_texts) == 0:
+            raise AssertionError("Expected exactly one link text, got None")
 
-            size_kb = None
-            if size_str:
-                size_match = re.search(r'([\d,.]+)\s*(KB|MB|GB)', size_str, re.IGNORECASE)
-                if size_match:
-                    try:
-                        value = float(size_match.group(1).replace(',', '.'))
-                        unit = size_match.group(2).upper()
-                        if unit == 'MB': value *= 1024
-                        elif unit == 'GB': value *= 1024 * 1024
-                        size_kb = value
-                    except ValueError:
-                        logger.warning(f"Could not parse size value: {size_match.group(1)}")
-                elif size_str.strip() and size_str.strip() != '-':
-                    logger.warning(f"Could not parse size string format: {size_str}")
+        filename = link_texts[0]
 
-            last_modified = None
-            if date_str:
-                try:
-                    last_modified = datetime.strptime(date_str, '%d.%m.%Y %H:%M')
-                except ValueError:
-                     try: # Try another common format
-                         last_modified = datetime.strptime(date_str, '%d-%m-%Y %H:%M')
-                     except ValueError:
-                        logger.warning(f"Could not parse date string format: {date_str}")
+        inline_links = row.select("div.smsc_cm_body_row_block_inline a,div.smsc_cm_body_row_block_inline iframe")
+        if inline_links:
+            inline_link = inline_links[0]
+            if inline_link.name == "iframe":
+                final_link = inline_link["src"]
+            elif inline_link.name == "a":
+                final_link = inline_link["href"]
+            else:
+                raise AssertionError(f"Unknown inline link type: {inline_link.name}")
+
+            return InternetShortcut(
+                session=self.session,
+                parent=self,
+                id=0,
+                name=link_texts[0],
+                mime_type=mime_style,
+                size_kb=size_kb,
+                last_modified=last_modified,
+                link=final_link,
+            )
+
+        dl_link, view_link, onclick_link = self._figure_out_item_links(row)
+        if onclick_link is not None:
+            return InternetShortcut(
+                session=self.session,
+                parent=self,
+                id=id_,
+                name=link_texts[0],
+                mime_type=mime_style,
+                size_kb=size_kb,
+                last_modified=last_modified,
+                link=onclick_link,
+            )
+
+        return FileItem(
+            session=self.session,
+            parent=self,
+            id=id_,
+            name=filename,
+            mime_type=mime_style,
+            size_kb=size_kb,
+            last_modified=last_modified,
+            download_url=dl_link,
+            view_url=view_link,
+        )
+
+    def _extract_url_from_onclick(self, onclick: str) -> str | None:
+        """Extract URL from window.open onclick JavaScript."""
+        match = re.search(r'window\.open\(["\']([^"\']+)["\']', onclick)
+        return match.group(1) if match else None
+
+    def _figure_out_item_links(self, row):
+        """Extract download and view links from row elements."""
+        links = row.select("a")
+        dl_link, view_link, onclick_link = None, None, None
+
+        for link in links:
+            classes = link.get("class") or []
+            href = link.get("href")
+            onclick = link.get("onclick")
+
+            if any(
+                dlclass in classes
+                for dlclass in [
+                    "download-link",
+                    "smsc-download__icon",
+                    "smsc-download__icon--large-margin",
+                    "smsc-download__icon--download",
+                ]
+            ):
+                dl_link = href
+            elif "smsc-download__link" in classes:
+                view_link = href
+            elif "smsc_cm_link" in classes and onclick:
+                onclick_link = self._extract_url_from_onclick(onclick)
+
+        return dl_link, view_link, onclick_link
+
+    def _parse_folder_row(self, row: Tag) -> FolderItem:
+        """Parse a single table row into a folder item."""
+        for link in row.select("a"):
+            classes = link.get("class") or []
+            if "smsc_cm_link" in classes:
+                browse_url = link["href"]
+                name = link.get_text(strip=True, separator="\n")
+                return FolderItem(
+                    session=self.session,
+                    parent=self,
+                    course=self.course,
+                    name=name,
+                    browse_url=browse_url,
+                )
+
+        raise SmartSchoolParsingError("No browse URL found")
+
+    def _parse_row(self, row: Tag) -> DocumentOrFolderItem | None:
+        """Parse a single table row into a file or folder item."""
+        if row.get("id") and row.get("id").lower().startswith("docid_"):
+            return self._parse_document_row(row)
+        return self._parse_folder_row(row)
+
+    @cached_property
+    def items(self) -> list[DocumentOrFolderItem]:
+        """Fetch items from this folder."""
+        soup = self._get_folder_html()
+        rows = soup.select("div.smsc_cm_body_row", recursive=False)
+
+        items = [item for row in rows if (item := self._parse_row(row))]
+        return sorted(items, key=lambda x: (0 if isinstance(x, FolderItem) else 1,) + natural_sort(x.name))
 
 
-            try:
-                is_folder = link.find('i', class_='fa-folder') is not None or '/Documents/Index/Index/' in href
-                folder_match = re.search(r'/ssID/(\d+)', href) # ssID is the folder's own ID
-                file_match = re.search(r'/docID/(\d+)', href) # docID is the file's own ID
-
-                if is_folder and folder_match:
-                    item_id = int(folder_match.group(1)) # This is the ssID of the folder item
-                    item = FolderItem(
-                        name=name,
-                        ss_id=item_id, # Use ss_id field from file_fetch model
-                        parent_id=containing_folder_id, # The ID of the folder we are currently listing
-                        description=description,
-                        # browse_url=href # file_fetch model doesn't have browse_url
-                        # course_id=self.course_id # file_fetch model doesn't have course_id directly
-                    )
-                    items.append(item)
-                elif file_match: # Assume file if docID is present
-                    item_id = int(file_match.group(1)) # This is the docID of the file item
-                    # Determine download path vs view url
-                    download_path = href if '/Documents/Download/download/' in href else None
-                    # view_url = href if 'Wopi' in href else None # file_fetch model doesn't have view_url
-
-                    # Extract mime type from icon class if possible
-                    mime_type = None
-                    icon = link.find('i', class_=re.compile(r'fa-file-'))
-                    if icon:
-                        icon_class = next((cls for cls in icon.get('class', []) if cls.startswith('fa-file-')), None)
-                        if icon_class:
-                            # Basic mapping (keep consistent with file_fetch if possible)
-                            if 'pdf' in icon_class: mime_type = 'application/pdf'
-                            elif 'word' in icon_class: mime_type = 'application/msword' # Or vnd.openxmlformats-officedocument.wordprocessingml.document
-                            elif 'excel' in icon_class: mime_type = 'application/vnd.ms-excel' # Or vnd.openxmlformats-officedocument.spreadsheetml.sheet
-                            elif 'powerpoint' in icon_class: mime_type = 'application/vnd.ms-powerpoint' # Or vnd.openxmlformats-officedocument.presentationml.presentation
-                            elif 'image' in icon_class: mime_type = 'image/*'
-                            elif 'archive' in icon_class: mime_type = 'application/zip'
-                            elif 'text' in icon_class: mime_type = 'text/plain'
-
-                    item = FileItem(
-                        name=name,
-                        doc_id=item_id, # Use doc_id field from file_fetch model
-                        parent_id=containing_folder_id, # The ID of the folder we are currently listing
-                        description=description,
-                        download_url_path=download_path, # Use download_url_path field
-                        mime_type=mime_type, # Use mime_type field
-                        size_kb=size_kb, # Use size_kb field
-                        last_modified=last_modified, # Use last_modified field
-                        # course_id=self.course_id # file_fetch model doesn't have course_id directly
-                    )
-                    items.append(item)
-                else:
-                    logger.warning(f"Could not determine type or extract ID for item '{name}' with href '{href}' in course {self.course_id}, folder {folder_id}.")
-
-            except (AttributeError, ValueError, IndexError, TypeError) as e:
-                logger.error(f"Error parsing row in course {self.course_id}, folder {folder_id}: {e}\nRow HTML: {row.prettify()}", exc_info=True)
-                continue
-
-        return items
+DocumentOrFolderItem: TypeAlias = FileItem | FolderItem | InternetShortcut

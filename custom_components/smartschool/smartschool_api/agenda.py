@@ -2,20 +2,33 @@ from __future__ import annotations
 
 import time
 from abc import ABC
-from datetime import datetime, date, timedelta  # Added date import
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, ClassVar
 
+from . import objects
 from ._xml_interface import SmartschoolXML_WeeklyCache
-from .objects import AgendaHour, AgendaLesson, AgendaMomentInfo
-from .session import Smartschool
+from .common import convert_to_datetime
+from .objects import AgendaHour, AgendaMomentInfo
+from .session import SessionMixin
+
+if TYPE_CHECKING:
+    from .session import Smartschool
+
+
+__all__ = ["AgendaLesson", "AgendaPoster", "SmartschoolHours", "SmartschoolLessons", "SmartschoolMomentInfos"]
 
 
 class AgendaPoster(SmartschoolXML_WeeklyCache, ABC):
     """Caches the information on a weekly basis, and posts to the mentioned URL."""
 
-    _url: str = "/?module=Agenda&file=dispatcher"
+    _url: ClassVar[str] = "/?module=Agenda&file=dispatcher"
 
-    def __init__(self, smartschool: Smartschool, timestamp_to_use: datetime | date | None = None):
-        super().__init__(smartschool= smartschool, timestamp_to_use=timestamp_to_use)
+
+@dataclass
+class AgendaLesson(SessionMixin, objects.AgendaLesson):
+    @property
+    def hour_details(self) -> AgendaHour:
+        return SmartschoolHours(self.session).search_by_hourId(self.hourID)
 
 
 class SmartschoolLessons(AgendaPoster):
@@ -54,8 +67,6 @@ class SmartschoolLessons(AgendaPoster):
     - freedayIcon
     - someSubjectsEmpty
     """
-    def __init__(self, smartschool: Smartschool, timestamp_to_use: datetime | date | None = None):
-        super().__init__(smartschool=smartschool, timestamp_to_use=timestamp_to_use)
 
     @property
     def _xpath(self) -> str:
@@ -75,23 +86,17 @@ class SmartschoolLessons(AgendaPoster):
 
     @property
     def _params(self) -> dict:
-        # Ensure we have a datetime object before calling timestamp()
-        dt_to_use = self.timestamp_to_use or datetime.now()
-        if isinstance(dt_to_use, date) and not isinstance(dt_to_use, datetime):
-            # Convert date to datetime (assuming start of day)
-            dt_to_use = datetime.combine(dt_to_use, datetime.min.time())
-
-        now_ts = dt_to_use.timestamp()
-        in_20_days_ts = now_ts + 20 * 24 * 3600
+        now = convert_to_datetime(self.timestamp_to_use).timestamp()
+        in_20_days = now + 20 * 24 * 3600
 
         return {
-            "startDateTimestamp": now_ts,  # Use the calculated timestamp
-            "endDateTimestamp": in_20_days_ts, # Use the calculated timestamp
+            "startDateTimestamp": now,  # 1700045313
+            "endDateTimestamp": in_20_days,  # 1700477313
             "filterType": "false",
             "filterID": "false",
             "gridType": "1",
             "classID": "0",
-            "endDateTimestampOld": in_20_days_ts, # Use the calculated timestamp
+            "endDateTimestampOld": in_20_days,  # 1700477313
             "forcedTeacher": "0",
             "forcedClass": "0",
             "forcedClassroom": "0",
@@ -153,14 +158,12 @@ class SmartschoolMomentInfos(AgendaPoster):
     - title: how it is called in the agenda
     """
 
-    def __init__(self, moment_id: str):
-        super().__init__()
+    def __init__(self, session: Smartschool, moment_id: str):
+        super().__init__(session=session)
 
-        moment_id = str(moment_id).strip()
-        if not moment_id:
+        self._moment_id = str(moment_id).strip()
+        if not self._moment_id:
             raise ValueError("Please provide a valid MomentID")
-
-        self._moment_id = moment_id
 
     @property
     def _xpath(self) -> str:
