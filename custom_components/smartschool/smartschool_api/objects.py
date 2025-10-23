@@ -47,22 +47,28 @@ class CourseGraphic:
 
 @dataclass
 class ResultGraphic:
-    """Represents the graphical part of a result."""
-
-    color: Literal["green", "red", "yellow"]
-    symbol: str
-
-    @cached_property
-    def achieved_points(self) -> float:
-        return as_float(self.description.split("/")[0])
+    type: Literal["percentage", "icon"]
+    color: Literal["green", "red", "olive", "yellow", "steel"]
+    value: int | Literal["target_lpd_steel"]
+    description: str | None
 
     @cached_property
-    def total_points(self) -> float:
-        return as_float(self.description.split("/")[1])
+    def achieved_points(self) -> float | None:
+        if self.type == "percentage":
+            return as_float(self.description.split("/")[0])
+        return None
+
+    @cached_property
+    def total_points(self) -> float | None:
+        if self.type == "percentage":
+            return as_float(self.description.split("/")[1])
+        return None
 
     @property
     def percentage(self) -> float:
-        return self.achieved_points / self.total_points
+        if self.type == "percentage":
+            return self.achieved_points / self.total_points
+        return 0.0
 
 
 @dataclass
@@ -157,13 +163,13 @@ class FeedbackFull:
 @dataclass
 class Result:
     identifier: str
-    type: Literal["normal"]
+    type: Literal["normal", "project"]
     name: str
     graphic: ResultGraphic
     date: DateTime
 
     gradebookOwner: Teacher
-    component: Component
+    component: Component | None
     courses: list[Course]
     period: Period
     feedback: list[Feedback]

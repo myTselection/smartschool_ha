@@ -246,8 +246,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         for message in self._messages:
             if message.status == 1:
                 self._number_of_read_messages = self._number_of_read_messages + 1
-            elif message.status == 0:    
-                self._number_of_outstanding_messages = self._number_of_outstanding_messages + 1 
+            elif message.status == 0:
+                self._number_of_outstanding_messages = self._number_of_outstanding_messages + 1
             self._total_number_of_messages = self._total_number_of_messages + 1
 
         self._number_of_read_messages
@@ -258,34 +258,34 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         subtotal = 0
         numberOfResults = 0
         for result in self._results:
-            if result.doesCount:
+            if result.doesCount and result.type == "normal":
                 numberOfResults = numberOfResults + 1
                 subtotal = subtotal + result.graphic.percentage
 
-        if numberOfResults > 0: 
-            self._total_result = (self._total_result / numberOfResults) * 100
+        if numberOfResults > 0:
+            self._total_result = (subtotal / numberOfResults) * 100
         return
 
     def get_items(self, list_id):
         return self._lists.get(list_id, [])
-    
+
     def get_last_updated(self):
         return self._last_updated
+
     def get_number_of_tasks_next(self):
         return self._numberOfTasksNext
-    
+
     def get_number_of_read_messages(self):
         return self._number_of_read_messages
-    
+
     def get_number_of_outstanding_messages(self):
         return self._number_of_outstanding_messages
-    
+
     def get_total_number_of_messages(self):
         return self._total_number_of_messages
-    
-    def get_total_result(self):
-        return self._total_result
 
+    def get_total_result(self):
+        return round(self._total_result)
 
     async def update_status(self, unique_user_id, uid, status):
         self._status_store.set_status(unique_user_id, uid, status)
