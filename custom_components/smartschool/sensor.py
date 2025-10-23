@@ -55,7 +55,7 @@ async def async_remove_entry(hass, config_entry):
         _LOGGER.info("Successfully removed sensor from the integration")
     except ValueError:
         pass
-        
+
 
 async def dry_setup(hass, config_entry, async_add_devices, coordinator):
     config = config_entry
@@ -66,24 +66,24 @@ async def dry_setup(hass, config_entry, async_add_devices, coordinator):
 
     check_settings(config, hass)
     sensors = []
-    
+
     componentData = ComponentData(
         username,
         password,
         smartschool_domain,
         mfa,
         async_get_clientsession(hass),
-        hass, 
+        hass,
         coordinator
     )
-    
+
     sensorTasks = ComponentUserSensor(componentData, hass)
     sensors.append(sensorTasks)
     sensorMessages = ComponentMessageSensor(componentData, hass)
     sensors.append(sensorMessages)
     sensorResults = ComponentResultsSensor(componentData, hass)
     sensors.append(sensorResults)
-        
+
     async_add_devices(sensors)
 
 
@@ -118,6 +118,7 @@ class ComponentData:
     @property
     def unique_id(self):
         return f"{NAME} {self._username} {self._school}"
+
     @property
     def name(self) -> str:
         """Return the name of the sensor."""
@@ -140,18 +141,17 @@ class ComponentUserSensor(Entity):
     async def async_update(self):
         await self._data.update()
         self._last_update =  self._data._lastupdate
-        
-        
+
+
     async def async_will_remove_from_hass(self):
         """Clean up after entity before removal."""
         _LOGGER.info("async_will_remove_from_hass " + NAME)
-
 
     @property
     def icon(self) -> str:
         """Shows the correct icon for container."""
         return "mdi:account-school"
-        
+
     @property
     def unique_id(self) -> str:
         """Return the name of the sensor."""
@@ -200,7 +200,7 @@ class ComponentUserSensor(Entity):
     @property
     def friendly_name(self) -> str:
         return self.name.title()
-        
+
 
 class ComponentMessageSensor(Entity):
     def __init__(self, data, hass):
@@ -217,9 +217,8 @@ class ComponentMessageSensor(Entity):
 
     async def async_update(self):
         await self._data.update()
-        self._last_update =  self._data._lastupdate
-        
-        
+        self._last_update = self._data._lastupdate
+
     async def async_will_remove_from_hass(self):
         """Clean up after entity before removal."""
         _LOGGER.info("async_will_remove_from_hass " + NAME)
@@ -229,7 +228,7 @@ class ComponentMessageSensor(Entity):
     def icon(self) -> str:
         """Shows the correct icon for container."""
         return "mdi:email-alert"
-        
+
     @property
     def unique_id(self) -> str:
         """Return the name of the sensor."""
@@ -281,7 +280,6 @@ class ComponentMessageSensor(Entity):
     @property
     def friendly_name(self) -> str:
         return self.name.title()
-    
 
 
 class ComponentResultsSensor(Entity):
@@ -295,23 +293,23 @@ class ComponentResultsSensor(Entity):
     @property
     def state(self) -> int | None:
         """Return the state of the sensor."""
-        return self._data._total_result
+        if self._data._total_result is not None:
+            return self._data._total_result
+        return None
 
     async def async_update(self):
         await self._data.update()
-        self._last_update =  self._data._lastupdate
-        
-        
+        self._last_update = self._data._lastupdate
+
     async def async_will_remove_from_hass(self):
         """Clean up after entity before removal."""
         _LOGGER.info("async_will_remove_from_hass " + NAME)
-
 
     @property
     def icon(self) -> str:
         """Shows the correct icon for container."""
         return "mdi:counter"
-        
+
     @property
     def unique_id(self) -> str:
         """Return the name of the sensor."""
