@@ -17,6 +17,12 @@ This integration is in no way affiliated with Smartschool.
 | ----------------------------------------------------------------------------------------------------------------------|
 
 
+## Update 09/2025
+Smartschool stopped the usage of the Smartschool "Agenda". Now, all schools need to use the "Planner" and "To-do's". The functionalities that were missing in the agenda (mark tasks as done) are now available in the Planner and Todo's of Smartschool. As a consequence, the added value of this integration seems currently very limited. 
+I will evaluate over time if Planner and Todo integration in Home Assistant would be usefull.
+
+
+## Background
 This integration has been based on the python application of [https://github.com/IntelCoreI6/smartschool_mcp](https://github.com/IntelCoreI6/smartschool_mcp) (fork of [https://github.com/svaningelgem/smartschool](https://github.com/svaningelgem/smartschool)).
 This application has been [forked and extended](https://github.com/myTselection/smartschool_mcp) to support parallel sessions and to support authentication with Google Authenticator (2FA).
 <p align="center"><img src="https://github.com/myTselection/smartschool_ha/blob/main/logo.png?raw=true" width="500"/></p>
