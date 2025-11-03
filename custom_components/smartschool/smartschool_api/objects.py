@@ -49,8 +49,9 @@ class CourseGraphic:
 class ResultGraphic:
     """Represents the graphical part of a result."""
 
-    color: Literal["green", "red", "yellow"]
-    symbol: str
+    color: Literal["green", "red", "yellow", "purple","olive","aqua"]
+    symbol: Optional[str] = None
+    description: Optional[str] = None
 
     @cached_property
     def achieved_points(self) -> float:

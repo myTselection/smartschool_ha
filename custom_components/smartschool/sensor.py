@@ -104,6 +104,7 @@ class ComponentData:
         self._number_of_outstanding_messages = None
         self._total_number_of_messages = None
         self._total_result = None
+        self._results_per_course = None
         
 
     async def update(self):        
@@ -114,6 +115,7 @@ class ComponentData:
         self._number_of_outstanding_messages = self._coordinator.get_number_of_outstanding_messages()
         self._total_number_of_messages = self._coordinator.get_total_number_of_messages()
         self._total_result = self._coordinator.get_total_result()
+        self._results_per_course = self._coordinator.get_results_per_course()
 
     @property
     def unique_id(self):
@@ -326,7 +328,7 @@ class ComponentResultsSensor(Entity):
     @property
     def extra_state_attributes(self) -> dict:
         """Return the state attributes."""
-        return {
+        base = {
             ATTR_ATTRIBUTION: NAME,
             "last update": self._last_update,
             "total result": self._data._total_result,
@@ -334,6 +336,12 @@ class ComponentResultsSensor(Entity):
             "school": self._school,
             "entity_picture": "https://raw.githubusercontent.com/myTselection/smartschool_ha/master/icon.png"
         }
+        if self._data._results_per_course:
+            for c, v in self._data._results_per_course.items():
+                if v:
+                    for component, percentage in v.items():
+                        base[f"{c} - {component}"] = f"{round(percentage * 100,0)}%"
+        return base
 
     @property
     def device_info(self) -> DeviceInfo:

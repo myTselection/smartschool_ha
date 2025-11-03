@@ -4,6 +4,7 @@ from pathlib import Path
 
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.const import Platform
 from .utils import *
@@ -98,6 +99,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     """Set up component as config entry."""
     refresh_interval = config_entry.options.get(CONF_REFRESH_INTERVAL, 30)
     # refresh_interval = 1 #DEBUG
+    _LOGGER.debug(f"{DOMAIN} async_setup_entry refresh_interval : {refresh_interval}")
     coordinator = ComponentUpdateCoordinator(hass, config_entry, refresh_interval)
     await coordinator.async_initialize() 
     

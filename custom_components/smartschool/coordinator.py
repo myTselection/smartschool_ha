@@ -255,15 +255,26 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._total_number_of_messages
 
         self._total_result = None
+        self._results_per_course = {}
         subtotal = 0
         numberOfResults = 0
+        _LOGGER.debug(f"{DOMAIN} results: {self._results}")
         for result in self._results:
             if result.doesCount:
                 numberOfResults = numberOfResults + 1
                 subtotal = subtotal + result.graphic.percentage
-
+                currentCourseResult = self._results_per_course.get(f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
+                if currentCourseResult == {}:
+                    self._results_per_course[f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResult
+                currentComponentResult = currentCourseResult.get(result.component.name, None)
+                if currentComponentResult is None:
+                    currentCourseResult[result.component.name] = result.graphic.percentage
+                else:
+                    currentCourseResult[result.component.name] = (currentComponentResult + result.graphic.percentage)/2
+        
+        _LOGGER.debug(f"{DOMAIN} results per course: {self._results_per_course}")
         if numberOfResults > 0: 
-            self._total_result = (self._total_result / numberOfResults) * 100
+            self._total_result = round((subtotal / numberOfResults) * 100, 0)
         return
 
     def get_items(self, list_id):
@@ -285,6 +296,9 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
     
     def get_total_result(self):
         return self._total_result
+
+    def get_results_per_course(self):
+        return self._results_per_course
 
 
     async def update_status(self, unique_user_id, uid, status):
