@@ -24,6 +24,7 @@ from .const import (
 
 from .storage import ChecklistStatusStorage
 from .utils import *
+import re
 
 
 _LOGGER = logging.getLogger(DOMAIN)
@@ -257,24 +258,42 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._total_result = None
         self._results_per_course = {}
         subtotal = 0
+        max_score = 0
         numberOfResults = 0
         _LOGGER.debug(f"{DOMAIN} results: {self._results}")
         for result in self._results:
             if result.doesCount:
                 numberOfResults = numberOfResults + 1
-                subtotal = subtotal + result.graphic.percentage
+                desc = getattr(result.graphic, "description", "") or ""
+                current_result = 0.0
+                max_current_result = 0.0
+                if "/" in desc:
+                    try:
+                        parts = desc.split("/", 1)
+                        current_result = float(parts[0].strip())
+                        max_current_result = float(parts[1].strip())
+                    except (ValueError, TypeError):
+                        # keep defaults (0.0) if parsing fails
+                        pass
+                else:
+                    continue
+                subtotal = subtotal + current_result
+                max_score = max_score + max_current_result
                 currentCourseResult = self._results_per_course.get(f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
                 if currentCourseResult == {}:
                     self._results_per_course[f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResult
                 currentComponentResult = currentCourseResult.get(result.component.name, None)
                 if currentComponentResult is None:
-                    currentCourseResult[result.component.name] = result.graphic.percentage
+                    currentCourseResult[result.component.name] = current_result
+                    currentCourseResult[result.component.name + '_max'] = max_current_result
                 else:
-                    currentCourseResult[result.component.name] = (currentComponentResult + result.graphic.percentage)/2
+                    currentComponentResultMax = currentCourseResult.get(result.component.name + '_max', 0)
+                    currentCourseResult[result.component.name] = (currentComponentResult + current_result)
+                    currentCourseResult[result.component.name + '_max'] = currentComponentResultMax + max_current_result
         
         _LOGGER.debug(f"{DOMAIN} results per course: {self._results_per_course}")
-        if numberOfResults > 0: 
-            self._total_result = round((subtotal / numberOfResults) * 100, 0)
+        if numberOfResults > 0 and max_score > 0: 
+            self._total_result = round((subtotal / max_score) * 100, 0)
         return
 
     def get_items(self, list_id):
