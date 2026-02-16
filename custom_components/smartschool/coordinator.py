@@ -282,11 +282,13 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.debug(f"{DOMAIN} parsed result: {current_result}, max_current_result: {max_current_result} from description: '{desc}' for result {result}")
                 subtotal = subtotal + current_result
                 max_score = max_score + max_current_result
-                currentCourseResult = self._results_per_course.get(f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
-                currentCourseResultMax = self._results_per_course_max.get(f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
+                course_name = result.courses[0].name if result.courses else "Unknown Course"
+                course_name = course_name.split(" - ")[0] if " - " in course_name else course_name
+                currentCourseResult = self._results_per_course.get(f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
+                currentCourseResultMax = self._results_per_course_max.get(f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
                 if currentCourseResult == {}:
-                    self._results_per_course[f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResult
-                    self._results_per_course_max[f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResultMax
+                    self._results_per_course[f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResult
+                    self._results_per_course_max[f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResultMax
                 currentComponentResult = currentCourseResult.get(result.component.name, None)
                 if currentComponentResult is None:
                     currentCourseResult[result.component.name] = current_result

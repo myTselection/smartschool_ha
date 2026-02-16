@@ -333,7 +333,7 @@ class ComponentResultsSensor(Entity):
         base = {
             ATTR_ATTRIBUTION: NAME,
             "last update": self._last_update,
-            "total result": self._data._total_result,
+            "total result": f"{self._data._total_result}%",
             "username": self._username,
             "school": self._school,
             "entity_picture": "https://raw.githubusercontent.com/myTselection/smartschool_ha/master/icon.png"
