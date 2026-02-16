@@ -257,6 +257,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
         self._total_result = None
         self._results_per_course = {}
+        self._results_per_course_max = {}
         subtotal = 0
         max_score = 0
         numberOfResults = 0
@@ -270,28 +271,33 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 if "/" in desc:
                     try:
                         parts = desc.split("/", 1)
-                        current_result = float(parts[0].strip())
-                        max_current_result = float(parts[1].strip())
+                        current_result = float(parts[0].strip().replace(",", "."))
+                        max_current_result = float(parts[1].strip().replace(",", "."))
                     except (ValueError, TypeError):
                         # keep defaults (0.0) if parsing fails
+                        _LOGGER.warning(f"{DOMAIN} Failed to parse result description: '{desc}' for result {result}. Expected format 'current/max'.")
                         pass
                 else:
                     continue
+                _LOGGER.debug(f"{DOMAIN} parsed result: {current_result}, max_current_result: {max_current_result} from description: '{desc}' for result {result}")
                 subtotal = subtotal + current_result
                 max_score = max_score + max_current_result
                 currentCourseResult = self._results_per_course.get(f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
+                currentCourseResultMax = self._results_per_course_max.get(f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
                 if currentCourseResult == {}:
                     self._results_per_course[f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResult
+                    self._results_per_course_max[f"{result.courses[0].name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResultMax
                 currentComponentResult = currentCourseResult.get(result.component.name, None)
                 if currentComponentResult is None:
                     currentCourseResult[result.component.name] = current_result
-                    currentCourseResult[result.component.name + '_max'] = max_current_result
+                    currentCourseResultMax[result.component.name] = max_current_result
                 else:
-                    currentComponentResultMax = currentCourseResult.get(result.component.name + '_max', 0)
+                    currentComponentResultMax = currentCourseResultMax.get(result.component.name, 0)
                     currentCourseResult[result.component.name] = (currentComponentResult + current_result)
-                    currentCourseResult[result.component.name + '_max'] = currentComponentResultMax + max_current_result
+                    currentCourseResultMax[result.component.name] = currentComponentResultMax + max_current_result
         
         _LOGGER.debug(f"{DOMAIN} results per course: {self._results_per_course}")
+        _LOGGER.debug(f"{DOMAIN} results per course max: {self._results_per_course_max}")
         if numberOfResults > 0 and max_score > 0: 
             self._total_result = round((subtotal / max_score) * 100, 0)
         return
@@ -318,6 +324,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
     def get_results_per_course(self):
         return self._results_per_course
+    def get_results_per_course_max(self):
+        return self._results_per_course_max
 
 
     async def update_status(self, unique_user_id, uid, status):

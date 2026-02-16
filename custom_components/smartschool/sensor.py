@@ -105,6 +105,7 @@ class ComponentData:
         self._total_number_of_messages = None
         self._total_result = None
         self._results_per_course = None
+        self._results_per_course_max = None
         
 
     async def update(self):        
@@ -116,6 +117,7 @@ class ComponentData:
         self._total_number_of_messages = self._coordinator.get_total_number_of_messages()
         self._total_result = self._coordinator.get_total_result()
         self._results_per_course = self._coordinator.get_results_per_course()
+        self._results_per_course_max = self._coordinator.get_results_per_course_max()
 
     @property
     def unique_id(self):
@@ -339,8 +341,11 @@ class ComponentResultsSensor(Entity):
         if self._data._results_per_course:
             for c, v in self._data._results_per_course.items():
                 if v:
-                    for component, percentage in v.items():
-                        base[f"{c} - {component}"] = f"{round(percentage * 100,0)}%"
+                    for component, score in v.items():
+                        max_value = self._data._results_per_course_max.get(c, {}).get(component, 0)
+                        _LOGGER.debug(f"component: {component}, score: {score}, max_value: {max_value}")
+                        if max_value > 0:
+                            base[f"{c} - {component}"] = f"{round((score / max_value) * 100,0)}%"
         return base
 
     @property
