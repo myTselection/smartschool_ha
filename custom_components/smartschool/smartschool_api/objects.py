@@ -137,6 +137,167 @@ class Course:
     class_: Class_ = Field(validation_alias=AliasChoices("class", "class_"))
 
 
+
+@dataclass
+class PlannedElementPeriod:
+    dateTimeFrom: datetime
+    dateTimeTo: datetime
+    wholeDay: bool
+    deadline: bool
+
+
+@dataclass
+class PlannedElementOrganisers:
+    users: list[_User]
+
+@dataclass
+class GroupFilters:
+    filters: list
+    additionalUsers: list[_User]
+
+
+@dataclass
+class _Group:
+    identifier: str
+    id: str
+    platformId: int
+    name: str
+    type: str
+    icon: str
+    sort: str
+
+@dataclass
+class PlannedElementParticipants:
+    groups: list[_Group]
+    users: list[_User]
+    groupFilters: GroupFilters
+
+
+@dataclass
+class PlannedElementParticipants:
+    groups: list[_Group]
+    users: list[_User]
+    groupFilters: GroupFilters
+
+
+@dataclass
+class UserSeeProperties:
+    id: bool
+    platformId: bool
+    period: bool
+    organisers: bool
+    participants: bool
+    plannedElementType: bool
+    isParticipant: bool
+    capabilities: bool
+    courses: bool
+    locations: bool
+    name: bool = False
+
+
+@dataclass
+class UserCapabilities:
+    canUserTrash: bool
+    canUserRestoreFromTrash: bool
+    canUserDelete: bool
+    canUserEdit: bool
+    canUserReplace: bool
+    canUserEditPresence: bool
+    canUserReschedule: bool
+    canUserChangeUserColor: bool
+    canUserChangeUserViewMetadata: bool
+    canUserSeeProperties: UserSeeProperties
+
+    canUserChangeOrganisers: bool = False
+    canUserChangeParticipants: bool = False
+    canUserChangeParticipantGroupFilters: bool = False
+    canUserChangeCourses: bool = False
+    canUserChangeLocations: bool = False
+    canUserCreateVideoCall: bool = False
+    canUserSeeVideoCall: bool = False
+    canUserManageVideoCall: bool = False
+
+
+@dataclass
+class PlannedElementCourseCluster:
+    id: int
+    name: str
+
+
+@dataclass
+class PlannedElementCourse:
+    id: int
+    platformId: int
+    name: str
+    scheduleCodes: list[str]
+    icon: str
+    courseCluster: PlannedElementCourseCluster
+    isVisible: bool
+
+
+@dataclass
+class PlannedElementLocation:
+    id: int
+    platformId: int
+    platformName: str
+    number: str
+    title: str
+    icon: str
+    type: str
+    selectable: bool
+
+
+@dataclass
+class PlannedElementJoinIds:
+    from_: str = Field(validation_alias=AliasChoices("from", "from_"))
+    to: str = Field(alias="to")
+
+
+@dataclass
+class PlannedElementAssignmentType:
+    id: int
+    name: str
+    abbreviation: str
+    isVisible: bool
+    weight: int
+
+
+@dataclass
+class PlannedElement:
+    id: int
+    platformId: int
+    period: PlannedElementPeriod
+    organisers: PlannedElementOrganisers
+    participants: PlannedElementParticipants
+    plannedElementType: str
+    isParticipant: bool
+    capabilities: UserCapabilities
+    courses: list[PlannedElementCourse]
+    locations: list[PlannedElementLocation]
+    sort: str
+    unconfirmed: bool
+    pinned: bool
+    color: str
+    joinIds: PlannedElementJoinIds
+
+    name: str = ""
+    assignmentType: PlannedElementAssignmentType | None = None
+    resolvedStatus: str = ""
+    onlineSession: str | None = None
+
+
+@dataclass
+class ApplicableAssignmentType:
+    id: int
+    platformId: int
+    name: str
+    abbreviation: str
+    isVisible: bool
+    weight: float
+
+
+
+
 @dataclass
 class Feedback:
     text: str

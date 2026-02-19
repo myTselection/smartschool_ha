@@ -49,6 +49,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._numberOfTasksNext = None
         self._messages = None
         self._results = None
+        self._planner = None
         self._total_result = None
         
         #  🇫🇷🇳🇱✝️🌎🎼🏛️🏺📜🧮🟰🏀🎨🤯🚸
@@ -101,6 +102,9 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 self._messages = await self._hass.async_add_executor_job(lambda: self._session.getMessages())
 
                 self._results = await self._hass.async_add_executor_job(lambda: self._session.getResults())
+
+                from_date = datetime.now()
+                self._planner = await self._hass.async_add_executor_job(lambda: self._session.getPlanner(from_date=from_date, till_date=from_date + timedelta(days=8)))
 
                 self._last_updated = datetime.now()
 
@@ -261,7 +265,12 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         subtotal = 0
         max_score = 0
         numberOfResults = 0
+        
+        _LOGGER.debug(f"{DOMAIN} planner: {self._planner}")
         _LOGGER.debug(f"{DOMAIN} results: {self._results}")
+        if self._results is None or len(self._results) == 0:
+            _LOGGER.debug(f"{DOMAIN} no results found for user {self._unique_user_id}")
+            return
         for result in self._results:
             if result.doesCount:
                 numberOfResults = numberOfResults + 1

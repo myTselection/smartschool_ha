@@ -4,6 +4,7 @@ import contextlib
 import functools
 import json
 import time
+import re
 import logging
 import datetime # Added import
 import requests # Added import
@@ -47,6 +48,7 @@ def _handle_cookies_and_login(func):
 @dataclass
 class Smartschool:
     creds: Credentials = None
+    authenticated_user: dict | None = field(init=False, default=None)
     
     # _session = httpx.Client(http2=True)
     _session: Session = field(init=False)
@@ -306,6 +308,19 @@ class Smartschool:
         """
         logger.debug("Entering _complete_verification")
         html = bs4_html(verification_page_response)
+        for script in html.select("script"):
+            if script.get("src") or "extend" not in script.text:
+                logger.debug(f"extend source scritpt not found or script has src, skipping script tag: {script}")
+                continue
+
+            if match := re.search(r"JSON\s*\.\s*parse\s*\(\s*'(.*)'\s*\)\s*\)\s*;?\s*$", script.text, flags=re.IGNORECASE):
+                result = re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), match.group(1))
+                data = json.loads(result.replace("\\\\", "\\"))
+                with contextlib.suppress(KeyError, TypeError, IndexError):
+                    self.authenticated_user = data["vars"]["authenticatedUser"]
+                    logger.debug(f"Authenticated user info extracted: {self.authenticated_user}")
+                    break
+                    # return
         current_verification_url = str(verification_page_response.url) # URL we are currently on
 
         # Parse verification form
@@ -369,6 +384,45 @@ class Smartschool:
         Returns the *final* response object after the verification POST.
         """
         logger.debug("Entering _complete_verification_2fa")
+        html = bs4_html(verification_page_response)
+        for script in html.select("script"):
+            if script.get("src") or "extend" not in script.text:
+                # logger.debug(f"extend source scritpt not found or script has src, skipping script tag: {script}")
+                continue
+            # if match := re.search(r"JSON\s*\.\s*parse\s*\(\s*'(.*)'\s*\)\s*\)\s*;?\s*$", script.text, flags=re.IGNORECASE):
+            #     result = re.sub(r"\\u([0-9a-fA-F]{4})", lambda m: chr(int(m.group(1), 16)), match.group(1))
+            #     data = json.loads(result.replace("\\\\", "\\"))
+            if match := re.search(r"JSON\s*\.\s*parse\s*\(\s*'(.*)'\s*\)\s*\)\s*;?\s*$",
+                                script.text, flags=re.IGNORECASE | re.DOTALL):
+                raw = match.group(1)
+
+                # 1) restore escaped single quotes (JS single-quoted string)
+                raw = raw.replace("\\'", "'")
+
+                # 2) escape any backslash that is NOT followed by a valid JSON escape char
+                #    valid JSON escapes are: " \ / b f n r t and uXXXX
+                #    The negative lookahead says: if backslash is followed by none of those, double it.
+                safe = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', raw)
+
+                # 3) Now safe should be a valid JSON text string (with \uXXXX preserved).
+                try:
+                    data = json.loads(safe)
+                except json.JSONDecodeError:
+                    # Extra fallback: log snippet for debugging and try a gentler unescape
+                    logger.debug("json.loads failed on safe string; dumping snippet for inspection")
+                    logger.debug("offending snippet: %s", safe[:1000])  # don't log entire huge blob
+                    # Optionally try a last-resort unescape via unicode_escape (caveat: may change semantics)
+                    try:
+                        alt = safe.encode('utf-8').decode('unicode_escape')
+                        data = json.loads(alt)
+                    except Exception:
+                        # re-raise original decode error for the caller
+                        raise
+                with contextlib.suppress(KeyError, TypeError, IndexError):
+                    self.authenticated_user = data["vars"]["authenticatedUser"]
+                    logger.debug(f"Authenticated user info extracted: {self.authenticated_user}")
+                    break
+                    # return
         
         # check_resp = self._session.get(self.create_url("/2fa/api/v1/config"), follow_redirects=True)
         check_resp = self._session.get(self.create_url("/2fa/api/v1/config"), allow_redirects=True)
