@@ -3,9 +3,9 @@ from __future__ import annotations
 import base64
 from datetime import date, datetime
 from functools import cached_property
-from typing import Annotated, Literal, Optional, Union
+from typing import Annotated, Literal, Optional, Union,List, Any
 
-from pydantic import AliasChoices, BeforeValidator, constr
+from pydantic import AliasChoices, BeforeValidator, constr, BaseModel, Field
 from pydantic.dataclasses import Field, dataclass
 
 from .common import as_float
@@ -138,75 +138,64 @@ class Course:
 
 
 
-@dataclass
-class PlannedElementPeriod:
+class PlannedElementPeriod(BaseModel):
     dateTimeFrom: datetime
     dateTimeTo: datetime
-    wholeDay: bool
-    deadline: bool
+    wholeDay: bool = False
+    deadline: bool = False
 
+    model_config = {"extra": "ignore"}
 
-@dataclass
-class PlannedElementOrganisers:
-    users: list[_User]
+class PlannedElementOrganisers(BaseModel):
+    users: List[_User] = Field(default_factory=list)
+    model_config = {"extra": "ignore"}
 
-@dataclass
-class GroupFilters:
-    filters: list
-    additionalUsers: list[_User]
+class GroupFilters(BaseModel):
+    filters: List[Any] = Field(default_factory=list)
+    additionalUsers: List[_User] = Field(default_factory=list)
+    model_config = {"extra": "ignore"}
 
+class _Group(BaseModel):
+    identifier: Optional[str] = None
+    id: Optional[int | str] = None
+    platformId: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[str] = None
+    icon: Optional[str] = None
+    sort: Optional[str] = None
+    model_config = {"extra": "ignore"}
 
-@dataclass
-class _Group:
-    identifier: str
-    id: str
-    platformId: int
-    name: str
-    type: str
-    icon: str
-    sort: str
+class PlannedElementParticipants(BaseModel):
+    groups: List[_Group] = Field(default_factory=list)
+    users: List[_User] = Field(default_factory=list)
+    groupFilters: GroupFilters = Field(default_factory=GroupFilters)
+    model_config = {"extra": "ignore"}
 
-@dataclass
-class PlannedElementParticipants:
-    groups: list[_Group]
-    users: list[_User]
-    groupFilters: GroupFilters
-
-
-@dataclass
-class PlannedElementParticipants:
-    groups: list[_Group]
-    users: list[_User]
-    groupFilters: GroupFilters
-
-
-@dataclass
-class UserSeeProperties:
-    id: bool
-    platformId: bool
-    period: bool
-    organisers: bool
-    participants: bool
-    plannedElementType: bool
-    isParticipant: bool
-    capabilities: bool
-    courses: bool
-    locations: bool
+class UserSeeProperties(BaseModel):
+    id: bool = True
+    platformId: bool = True
+    period: bool = True
+    organisers: bool = True
+    participants: bool = True
+    plannedElementType: bool = True
+    isParticipant: bool = True
+    capabilities: bool = True
+    courses: bool = True
+    locations: bool = True
     name: bool = False
+    model_config = {"extra": "ignore"}
 
-
-@dataclass
-class UserCapabilities:
-    canUserTrash: bool
-    canUserRestoreFromTrash: bool
-    canUserDelete: bool
-    canUserEdit: bool
-    canUserReplace: bool
-    canUserEditPresence: bool
-    canUserReschedule: bool
-    canUserChangeUserColor: bool
-    canUserChangeUserViewMetadata: bool
-    canUserSeeProperties: UserSeeProperties
+class UserCapabilities(BaseModel):
+    canUserTrash: bool = False
+    canUserRestoreFromTrash: bool = False
+    canUserDelete: bool = False
+    canUserEdit: bool = False
+    canUserReplace: bool = False
+    canUserEditPresence: bool = False
+    canUserReschedule: bool = False
+    canUserChangeUserColor: bool = False
+    canUserChangeUserViewMetadata: bool = False
+    canUserSeeProperties: UserSeeProperties = Field(default_factory=UserSeeProperties)
 
     canUserChangeOrganisers: bool = False
     canUserChangeParticipants: bool = False
@@ -217,73 +206,73 @@ class UserCapabilities:
     canUserSeeVideoCall: bool = False
     canUserManageVideoCall: bool = False
 
+    model_config = {"extra": "ignore"}
 
-@dataclass
-class PlannedElementCourseCluster:
-    id: int
-    name: str
+class PlannedElementCourseCluster(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    model_config = {"extra": "ignore"}
 
+class PlannedElementCourse(BaseModel):
+    id: Optional[int | str] = None
+    platformId: Optional[int] = None
+    name: Optional[str] = None
+    scheduleCodes: List[str] = Field(default_factory=list)
+    icon: Optional[str] = None
+    courseCluster: Optional[PlannedElementCourseCluster] = None
+    isVisible: bool = True
+    model_config = {"extra": "ignore"}
 
-@dataclass
-class PlannedElementCourse:
-    id: int
-    platformId: int
-    name: str
-    scheduleCodes: list[str]
-    icon: str
-    courseCluster: PlannedElementCourseCluster
-    isVisible: bool
+class PlannedElementLocation(BaseModel):
+    id: Optional[int | str] = None
+    platformId: Optional[int] = None
+    platformName: Optional[str] = None
+    number: Optional[str] = None
+    title: Optional[str] = None
+    icon: Optional[str] = None
+    type: Optional[str] = None
+    selectable: bool = False
+    model_config = {"extra": "ignore"}
 
+class PlannedElementJoinIds(BaseModel):
+    # allow "from" in input JSON while keeping python attr `from_`
+    from_: Optional[str] = Field(default=None, alias="from")
+    to: Optional[str] = None
 
-@dataclass
-class PlannedElementLocation:
-    id: int
-    platformId: int
-    platformName: str
-    number: str
-    title: str
-    icon: str
-    type: str
-    selectable: bool
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
+class PlannedElementAssignmentType(BaseModel):
+    id: int | str
+    name: str | None = None
+    abbreviation: str | None = None
+    isVisible: bool = True
+    weight: int | None = None
 
-@dataclass
-class PlannedElementJoinIds:
-    from_: str = Field(validation_alias=AliasChoices("from", "from_"))
-    to: str = Field(alias="to")
+    model_config = {"extra": "ignore"}
 
+class PlannedElement(BaseModel):
+    # accept int or string id (UUID-like)
+    id: int | str
+    platformId: Optional[int] = None
+    period: Optional[PlannedElementPeriod] = None
+    organisers: PlannedElementOrganisers = Field(default_factory=PlannedElementOrganisers)
+    participants: PlannedElementParticipants = Field(default_factory=PlannedElementParticipants)
+    plannedElementType: Optional[str] = None
+    isParticipant: bool = False
+    capabilities: UserCapabilities = Field(default_factory=UserCapabilities)
+    courses: List[PlannedElementCourse] = Field(default_factory=list)
+    locations: List[PlannedElementLocation] = Field(default_factory=list)
+    sort: Optional[str] = None
+    unconfirmed: bool = False
+    pinned: bool = False
+    color: Optional[str] = None
+    joinIds: PlannedElementJoinIds = Field(default_factory=PlannedElementJoinIds)
 
-@dataclass
-class PlannedElementAssignmentType:
-    id: int
-    name: str
-    abbreviation: str
-    isVisible: bool
-    weight: int
-
-
-@dataclass
-class PlannedElement:
-    id: int
-    platformId: int
-    period: PlannedElementPeriod
-    organisers: PlannedElementOrganisers
-    participants: PlannedElementParticipants
-    plannedElementType: str
-    isParticipant: bool
-    capabilities: UserCapabilities
-    courses: list[PlannedElementCourse]
-    locations: list[PlannedElementLocation]
-    sort: str
-    unconfirmed: bool
-    pinned: bool
-    color: str
-    joinIds: PlannedElementJoinIds
-
-    name: str = ""
-    assignmentType: PlannedElementAssignmentType | None = None
-    resolvedStatus: str = ""
-    onlineSession: str | None = None
+    name: Optional[str] = None
+    assignmentType: Optional[PlannedElementAssignmentType] = None
+    resolvedStatus: Optional[str] = None
+    onlineSession: Optional[str] = None
+    model_config = {"populate_by_name": True, "extra": "ignore"}
 
 
 @dataclass

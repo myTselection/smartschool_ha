@@ -482,10 +482,12 @@ class Smartschool:
         """
         logger.debug(f"Calling json method: method={method.upper()}, url={url}")
         if method.lower() == "post":
+            logger.debug(f"Making POST request to {url}, args: {args}, with data: {kwargs.get('data', {})}")
             r = self.post(url, *args, **kwargs) # Uses the decorated post method
         else:
             r = self.get(url, *args, **kwargs) # Uses the decorated get method
 
+        logger.debug(f"Response status code: {r.status_code}, URL: {r.url}, response text snippet: {r.text[:200]}")
         json_ = r.text
 
         try:

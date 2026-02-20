@@ -43,12 +43,16 @@
 
 
 from datetime import date, datetime
+import logging
 from typing import Iterator
 
 from .objects import ApplicableAssignmentType, PlannedElement
 from .session import Smartschool
 
 __all__ = ["Planner", "ApplicableAssignmentTypes"]
+
+_LOGGER = logging.getLogger(__name__)
+
 
 
 class Planner:
@@ -63,7 +67,14 @@ class Planner:
         self.till_date = till_date
 
     def __iter__(self) -> Iterator[PlannedElement]:
-        for element in self.smartschool.json(f"/planner/api/v1/planned-elements/user/{self.smartschool.authenticated_user['id']}", method="post", data={"from": self.from_date.isoformat(), "to": self.till_date.isoformat(), "types": "planned-assignments,planned-to-dos"}):
+        
+        for element in self.smartschool.json(f"/planner/api/v1/planned-elements/user/{self.smartschool.authenticated_user['id']}?from={self.from_date.isoformat()}&to={self.till_date.isoformat()}&types=planned-to-dos,planned-lesson-cluster-assignments,planned-assignments", 
+                                             method="get", 
+                                            #  data={"from": self.from_date.isoformat(), "to": self.till_date.isoformat(), "types": "planned-to-dos,planned-lesson-cluster-assignments,planned-assignments"},
+                                             headers={
+                                                    "X-Requested-With": "XMLHttpRequest",
+                                                }):
+            _LOGGER.info(f"plannedElement: {element}")
             yield PlannedElement(**element)
 
 class ApplicableAssignmentTypes():
