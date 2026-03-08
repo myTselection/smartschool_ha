@@ -207,7 +207,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"{DOMAIN} no results found for user {self._unique_user_id}")
             return
         for result in self._results:
-            if result.doesCount:
+            if result.doesCount and result.type == "normal":
                 numberOfResults = numberOfResults + 1
                 desc = getattr(result.graphic, "description", "") or ""
                 current_result = 0.0

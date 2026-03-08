@@ -67,7 +67,11 @@ class ComponentSession(object):
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getResults(self):
-        results = list(Results(smartschool=self.smartschool))
+        results = []
+        try:
+            results = list(Results(smartschool=self.smartschool))
+        except Exception as e:
+            _LOGGER.error(e)
         return results
     
     @sleep_and_retry
