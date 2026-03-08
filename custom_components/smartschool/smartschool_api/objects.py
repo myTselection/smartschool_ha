@@ -49,9 +49,9 @@ class CourseGraphic:
 class ResultGraphic:
     type: Literal["percentage", "icon"]
     color: Literal["green", "red", "olive", "yellow", "purple", "steel","aqua"]
+    value: int | Literal["target_lpd_steel"]
     description: Optional[str] = None
     symbol: Optional[str] = None
-    value: int | Literal["target_lpd_steel"]
 
     @cached_property
     def achieved_points(self) -> float | None:
