@@ -54,7 +54,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._numberOfTasksNext = None
         self._messages = None
         self._results = None
-        self._planner = None
+        self._planner_assignments = None
         self._total_result = None
         
         #  🇫🇷🇳🇱✝️🌎🎼🏛️🏺📜🧮🟰🏀🎨🤯🚸
@@ -110,9 +110,12 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 self._results = await self._hass.async_add_executor_job(lambda: self._session.getResults())
 
                 from_date = datetime.now()
-                self._planner = await self._hass.async_add_executor_job(lambda: self._session.getPlanner(from_date=from_date, till_date=from_date + timedelta(days=8)))
-                self._planner.sort(key=lambda x: x.period.dateTimeFrom)
-                _LOGGER.debug(f"{DOMAIN} update planner completed with planner data: {self._planner}")
+                self._planner_assignments = await self._hass.async_add_executor_job(lambda: self._session.getPlanner(from_date=from_date, till_date=from_date + timedelta(days=30)))
+                self._planner_assignments.sort(key=lambda x: x.period.dateTimeFrom)
+                # _LOGGER.debug(f"{DOMAIN} update planner completed with planner data: {self._planner_assignments}")
+                self._planner_lessons = await self._hass.async_add_executor_job(lambda: self._session.getPlanner(from_date=from_date, till_date=from_date + timedelta(days=16), planner_type="planned-lessons,planned-placeholders,planned-school-activities"))
+                self._planner_lessons.sort(key=lambda x: x.period.dateTimeFrom)
+                _LOGGER.debug(f"{DOMAIN} update planner completed with planner data: {self._planner_lessons}")
                 self._last_updated = datetime.now()
 
             await self._async_local_refresh_data()
@@ -139,7 +142,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         next_schoolday = None
         number_of_tasks_next = 0
 
-        _LOGGER.debug(f"{DOMAIN} refreshing local data for user {self._username}, future_tasks: {self._future_tasks}, agenda: {self._agenda}, messages: {self._messages}, results: {self._results}, planner: {self._planner}")
+        _LOGGER.debug(f"{DOMAIN} refreshing local data for user {self._username}, future_tasks: {self._future_tasks}, agenda: {self._agenda}, messages: {self._messages}, results: {self._results}, planner: {self._planner_assignments}")
 
         if self._agenda and len(self._agenda) > 0:
             # Extract the date part, example value: date: 2023-06-01
@@ -147,7 +150,12 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         else:
             _LOGGER.debug(f"{DOMAIN} no agenda items found for user {self._username}")
             #next schoolday is next day excluding weekends, example value: next_schoolday: 2023-06-01
-            next_schoolday = self.calculate_next_schoolday()
+            # next_schoolday = self.calculate_next_schoolday()
+            next_schoolday = self.extract_next_schoolday_from_planner_lessons()
+            if not next_schoolday:
+                _LOGGER.debug(f"{DOMAIN} no planner lessons found for user {self._username}, calculating next schoolday based on current date")
+                next_schoolday = self.calculate_next_schoolday() 
+            
             _LOGGER.debug(f"{DOMAIN} calculated next schoolday: {next_schoolday} for user {self._username}")
 
         if self._future_tasks and len(self._future_tasks.days) > 0: 
@@ -156,20 +164,19 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             number_of_tasks_next = self.extract_agenda_future_tasks(current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next)
 
 
-        if self._planner and len(self._planner) > 0: 
+        if self._planner_assignments and len(self._planner_assignments) > 0: 
             _LOGGER.debug(f"{DOMAIN} extracting planner assignments for user {self._username}")
             number_of_tasks_next = self.extract_planner_assignments(current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next)
 
 
         #School bag list
         if next_schoolday:
+            next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d").date()
             # only needed in fetced from agenda
             if self._agenda and len(self._agenda) > 0:
-                next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d")
+                self.schoolbag_from_agenda(current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate)
             else:
-                # next_schooldayDate = next_schoolday
-                next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d")
-            self.schoolbag_from_agenda(current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate)
+                self.schoolbag_from_planner_lessons(current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate)
 
         if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
             _LOGGER.debug(f"{DOMAIN} valid uids: {valid_uids}, list {self._unique_user_id}")
@@ -201,7 +208,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         max_score = 0
         numberOfResults = 0
         
-        _LOGGER.debug(f"{DOMAIN} planner: {self._planner}")
+        _LOGGER.debug(f"{DOMAIN} planner: {self._planner_assignments}")
         _LOGGER.debug(f"{DOMAIN} results: {self._results}")
         if self._results is None or len(self._results) == 0:
             _LOGGER.debug(f"{DOMAIN} no results found for user {self._unique_user_id}")
@@ -276,7 +283,56 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                         description=description,
                         due=start_datetime
                     ))
-            elif agendaItemDate > next_schooldayDate:
+            elif agendaItemDate.date() > next_schooldayDate:
+                break
+            else:
+                continue
+
+
+    def schoolbag_from_planner_lessons(self, current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate):
+        # for agendaItem in self._agenda:
+        for plannerItem in self._planner_lessons:
+            # _LOGGER.debug(f"{DOMAIN} planner item: {plannerItem}")
+            # _LOGGER.debug(f"{DOMAIN} period to: {plannerItem.period.dateTimeTo}")
+            # _LOGGER.debug(f"{DOMAIN} leerkracht: {plannerItem.organisers.users[0].name.startingWithLastName if plannerItem.organisers.users else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} klas: {plannerItem.participants.groups[0].name if plannerItem.participants.groups else 'unknown'}")
+            _LOGGER.debug(f"{DOMAIN} type: {plannerItem.plannedElementType}, {plannerItem.assignmentType.name if plannerItem.assignmentType else 'unknown'}, {plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} vak: {plannerItem.courses[0].name if plannerItem.courses else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} lokaal: {plannerItem.locations[0].title if plannerItem.locations else 'unknown'}")
+            _LOGGER.debug(f"{DOMAIN} beschrijving: {plannerItem.name}")
+            # _LOGGER.debug(f"{DOMAIN} status: {plannerItem.resolvedStatus}")
+            # _LOGGER.debug(f"{DOMAIN} planner item end ---")
+            _LOGGER.debug(f"{DOMAIN} plannerItem: {plannerItem}, plannerItem.date: {plannerItem.period.dateTimeFrom}, next_schoolday: {next_schoolday}")
+            agendaItemDateString = plannerItem.period.dateTimeFrom.strftime("%Y-%m-%d")
+            lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
+            task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
+            if agendaItemDateString == next_schoolday:
+                agendaItemHour = lesson_hour
+                start_datetime = plannerItem.period.dateTimeFrom
+                course_name = plannerItem.courses[0].name if plannerItem.courses else 'Algemeen'
+                course_icon = self._course_icons.get(course_name,"")
+                lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
+                task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
+                assignment_description = plannerItem.name if plannerItem.name else ''
+                summary = f"{course_icon}{course_name}, {task_weekday} {lesson_hour}"
+                valid_uids.add(plannerItem.id)
+                status = self._status_store.get_status(self._unique_user_id, plannerItem.id)
+
+                subjectline =  assignment_description
+                roomLine = (plannerItem.locations[0].title + ' ') if plannerItem.locations else ''
+                timeLine = agendaItemHour
+                    # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
+                description = ((subjectline + '\n') if len(subjectline) > 0 else '') + ((roomLine + '\n') if len(roomLine) > 0 else '') + timeLine
+                agendatItemUid = plannerItem.id
+                valid_uids.add(agendatItemUid)
+                new_lists[current_list_schooltas].append(TodoItem(
+                        uid=agendatItemUid,
+                        summary=summary,
+                        status=TodoItemStatus(status),
+                        description=description,
+                        due=start_datetime
+                    ))
+            elif plannerItem.period.dateTimeFrom.date() > next_schooldayDate:
                 break
             else:
                 continue
@@ -307,6 +363,17 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     next_schoolday = agendaItemDate
                     _LOGGER.debug(f"{DOMAIN} next schoolday: {next_schoolday}")
                     break
+    
+    def extract_next_schoolday_from_planner_lessons(self):
+        next_schoolday = None
+        for plannerItem in self._planner_lessons:
+            dt_from = plannerItem.period.dateTimeFrom
+            if dt_from > datetime.now(dt_from.tzinfo):
+                next_schoolday = dt_from.strftime("%Y-%m-%d")
+                _LOGGER.debug(f"{DOMAIN} next schoolday from planner lessons: {next_schoolday}")
+                break
+        return next_schoolday
+
 
     def extract_agenda_future_tasks(self, current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next):
         for day in self._future_tasks.days:
@@ -366,18 +433,28 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                             
         return number_of_tasks_next
     
+    def format_planner_date(self, dt: datetime, now: datetime | None = None) -> str:
+        now = now or datetime.now(dt.tzinfo)
 
+        # Monday=0 ... Friday=4 ... Sunday=6
+        days_until_friday = max(0, 4 - now.weekday())
+        upcoming_friday = now.date() + timedelta(days=days_until_friday)
+        upcoming_friday = now.date() + timedelta(days=6)
+
+        if dt.date() <= upcoming_friday:
+            return dt.strftime("%a")       # Mon (use %A for Monday)
+        return dt.strftime("%a %d/%m")     # Mon 09/03
     
     def extract_planner_assignments(self, current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next):
-        for plannerItem in self._planner:
+        for plannerItem in self._planner_assignments:
             # _LOGGER.debug(f"{DOMAIN} planner item: {plannerItem}")
             # _LOGGER.debug(f"{DOMAIN} period to: {plannerItem.period.dateTimeTo}")
             # _LOGGER.debug(f"{DOMAIN} leerkracht: {plannerItem.organisers.users[0].name.startingWithLastName if plannerItem.organisers.users else 'unknown'}")
             # _LOGGER.debug(f"{DOMAIN} klas: {plannerItem.participants.groups[0].name if plannerItem.participants.groups else 'unknown'}")
-            # _LOGGER.debug(f"{DOMAIN} type: {plannerItem.plannedElementType}, {plannerItem.assignmentType.name if plannerItem.assignmentType else 'unknown'}, {plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else 'unknown'}")
+            _LOGGER.debug(f"{DOMAIN} type: {plannerItem.plannedElementType}, {plannerItem.assignmentType.name if plannerItem.assignmentType else 'unknown'}, {plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else 'unknown'}")
             # _LOGGER.debug(f"{DOMAIN} vak: {plannerItem.courses[0].name if plannerItem.courses else 'unknown'}")
             # _LOGGER.debug(f"{DOMAIN} lokaal: {plannerItem.locations[0].title if plannerItem.locations else 'unknown'}")
-            # _LOGGER.debug(f"{DOMAIN} beschrijving: {plannerItem.name}")
+            _LOGGER.debug(f"{DOMAIN} beschrijving: {plannerItem.name}")
             # _LOGGER.debug(f"{DOMAIN} status: {plannerItem.resolvedStatus}")
             # _LOGGER.debug(f"{DOMAIN} planner item end ---")
 
@@ -385,10 +462,11 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             course_name = plannerItem.courses[0].name if plannerItem.courses else 'Algemeen'
             course_icon = self._course_icons.get(course_name,"")
             lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
+            task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
             task_type = plannerItem.assignmentType.name
             task_type_abbreviation = plannerItem.assignmentType.abbreviation
             assignment_description = plannerItem.name
-            summary = f"{course_icon}{course_name} {task_type}, {lesson_hour}"
+            summary = f"{course_icon}{course_name} {task_type}, {task_weekday} {lesson_hour}"
             if task_type == PLANNER_LABEL_TAAK:
                 list_id = current_list_taken
                 action_icon = "🛠️"
@@ -407,7 +485,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             else:
                 _LOGGER.warning(f"{DOMAIN} found planner item with unknown type: {task_type}, defaulting to meebrengen list, planner item: {plannerItem}")  
                 list_id = current_list_meebrengen
-                assignment_description = f"{course_icon}{course_name} ({lesson_hour})"
+                assignment_description = f"{course_icon}{course_name} ({task_weekday} {lesson_hour})"
                 summary = plannerItem.name
                 action_icon = "🎒"
 

@@ -83,8 +83,8 @@ class ComponentSession(object):
     
     @sleep_and_retry
     @limits(calls=1, period=5)
-    def getPlanner(self, from_date: datetime | None = None, till_date: datetime | None = None):
-        results = list(Planner(smartschool=self.smartschool, from_date=from_date, till_date=till_date))
+    def getPlanner(self, from_date: datetime | None = None, till_date: datetime | None = None, planner_type: str | None = None):
+        results = list(Planner(smartschool=self.smartschool, from_date=from_date, till_date=till_date, planner_type=planner_type))
         return results
     
     

@@ -61,14 +61,20 @@ class Planner:
 
     """
 
-    def __init__(self, smartschool: Smartschool, from_date: datetime | date | None = None,till_date: datetime | date | None = None):
+    def __init__(self, smartschool: Smartschool, from_date: datetime | date | None = None, till_date: datetime | date | None = None, planner_type: str | None = None):
         self.smartschool = smartschool
         self.from_date = from_date
         self.till_date = till_date
+        # known types: planned-to-dos, planned-lesson-cluster-assignments, planned-assignments, planned-lessons, planned-placeholders, planned-school-activities
+        self.type = (
+            planner_type
+            if planner_type is not None
+            else "planned-to-dos,planned-lesson-cluster-assignments,planned-assignments"
+        )
 
     def __iter__(self) -> Iterator[PlannedElement]:
         
-        for element in self.smartschool.json(f"/planner/api/v1/planned-elements/user/{self.smartschool.authenticated_user['id']}?from={self.from_date.isoformat()}&to={self.till_date.isoformat()}&types=planned-to-dos,planned-lesson-cluster-assignments,planned-assignments", 
+        for element in self.smartschool.json(f"/planner/api/v1/planned-elements/user/{self.smartschool.authenticated_user['id']}?from={self.from_date.isoformat()}&to={self.till_date.isoformat()}&types={self.type}", 
                                              method="get", 
                                             #  data={"from": self.from_date.isoformat(), "to": self.till_date.isoformat(), "types": "planned-to-dos,planned-lesson-cluster-assignments,planned-assignments"},
                                              headers={
