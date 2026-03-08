@@ -413,6 +413,9 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
             valid_uids.add(plannerItem.id)
             status = self._status_store.get_status(self._unique_user_id, plannerItem.id)
+            if plannerItem.resolvedStatus == "resolved":
+                status = "completed"
+                self._status_store.set_status(self._unique_user_id, plannerItem.id, status)
             new_lists[list_id].append(TodoItem(
                 uid=plannerItem.id,
                 summary=summary,
