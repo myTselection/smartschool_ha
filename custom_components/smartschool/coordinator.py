@@ -370,16 +370,16 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
     
     def extract_planner_assignments(self, current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next):
         for plannerItem in self._planner:
-            _LOGGER.debug(f"{DOMAIN} planner item: {plannerItem}")
-            _LOGGER.debug(f"{DOMAIN} period to: {plannerItem.period.dateTimeTo}")
-            _LOGGER.debug(f"{DOMAIN} leerkracht: {plannerItem.organisers.users[0].name.startingWithLastName if plannerItem.organisers.users else 'unknown'}")
-            _LOGGER.debug(f"{DOMAIN} klas: {plannerItem.participants.groups[0].name if plannerItem.participants.groups else 'unknown'}")
-            _LOGGER.debug(f"{DOMAIN} type: {plannerItem.plannedElementType}, {plannerItem.assignmentType.name if plannerItem.assignmentType else 'unknown'}, {plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else 'unknown'}")
-            _LOGGER.debug(f"{DOMAIN} vak: {plannerItem.courses[0].name if plannerItem.courses else 'unknown'}")
-            _LOGGER.debug(f"{DOMAIN} lokaal: {plannerItem.locations[0].title if plannerItem.locations else 'unknown'}")
-            _LOGGER.debug(f"{DOMAIN} beschrijving: {plannerItem.name}")
-            _LOGGER.debug(f"{DOMAIN} status: {plannerItem.resolvedStatus}")
-            _LOGGER.debug(f"{DOMAIN} planner item end ---")
+            # _LOGGER.debug(f"{DOMAIN} planner item: {plannerItem}")
+            # _LOGGER.debug(f"{DOMAIN} period to: {plannerItem.period.dateTimeTo}")
+            # _LOGGER.debug(f"{DOMAIN} leerkracht: {plannerItem.organisers.users[0].name.startingWithLastName if plannerItem.organisers.users else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} klas: {plannerItem.participants.groups[0].name if plannerItem.participants.groups else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} type: {plannerItem.plannedElementType}, {plannerItem.assignmentType.name if plannerItem.assignmentType else 'unknown'}, {plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} vak: {plannerItem.courses[0].name if plannerItem.courses else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} lokaal: {plannerItem.locations[0].title if plannerItem.locations else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} beschrijving: {plannerItem.name}")
+            # _LOGGER.debug(f"{DOMAIN} status: {plannerItem.resolvedStatus}")
+            # _LOGGER.debug(f"{DOMAIN} planner item end ---")
 
 
             course_name = plannerItem.courses[0].name if plannerItem.courses else 'Algemeen'
