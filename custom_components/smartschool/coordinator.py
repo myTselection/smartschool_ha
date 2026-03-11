@@ -314,15 +314,14 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
                 task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
                 assignment_description = plannerItem.name if plannerItem.name else ''
-                summary = f"{course_icon}{course_name}, {task_weekday} {lesson_hour}"
+                summary = f"{course_icon}{course_name}, {plannerItem.locations[0].title} - {task_weekday} {lesson_hour}"
                 valid_uids.add(plannerItem.id)
                 status = self._status_store.get_status(self._unique_user_id, plannerItem.id)
 
                 subjectline =  assignment_description
-                roomLine = (plannerItem.locations[0].title + ' ') if plannerItem.locations else ''
                 timeLine = agendaItemHour
                     # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
-                description = ((subjectline + '\n') if len(subjectline) > 0 else '') + ((roomLine + '\n') if len(roomLine) > 0 else '') + timeLine
+                description = subjectline
                 agendatItemUid = plannerItem.id
                 valid_uids.add(agendatItemUid)
                 new_lists[current_list_schooltas].append(TodoItem(
