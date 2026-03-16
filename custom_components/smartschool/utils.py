@@ -13,8 +13,11 @@ from ratelimit import limits, sleep_and_retry
 
 import voluptuous as vol
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from .const import (
+    DOMAIN,
+)
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(DOMAIN)
 
 def check_settings(config, hass):
     if not any(config.get(i) for i in ["username"]):

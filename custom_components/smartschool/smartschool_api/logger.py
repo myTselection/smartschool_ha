@@ -11,6 +11,6 @@ def setup_logger(lowest_level: int = logging.INFO) -> logging.Logger:
     for h in logging.root.handlers:
         h.setFormatter(formatter)
 
-    logger.setLevel(lowest_level)
+    # logger.setLevel(lowest_level)
 
     return logger
