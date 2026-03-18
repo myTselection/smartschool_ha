@@ -13,6 +13,13 @@ TASK_LABEL_TAAK = "Taak"
 TASK_LABEL_TOETS = "Toets"
 TASK_LABEL_MEEBRENGEN = "Meebrengen / afwerken"
 
+
+PLANNER_LABEL_TAAK = "Taak"
+PLANNER_LABEL_TOETS = "Gewone toets"
+PLANNER_LABEL_HERHALINGSTOETS = "Herhalingstoets"
+PLANNER_LABEL_EXAMEN = "Examen"
+PLANNER_LABEL_MEEBRENGEN = "Meebrengen"
+
 CONF_REFRESH_INTERVAL = "refresh_interval"
 CONF_DEFAULT_LIST = "default_list"
 

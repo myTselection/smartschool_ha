@@ -17,6 +17,11 @@ from .const import (
     LIST_MEEBRENGEN,
     LIST_VOLGENDE,
     LIST_SCHOOLTAS,
+    PLANNER_LABEL_MEEBRENGEN,
+    PLANNER_LABEL_TAAK,
+    PLANNER_LABEL_TOETS,
+    PLANNER_LABEL_HERHALINGSTOETS,
+    PLANNER_LABEL_EXAMEN,
     TASK_LABEL_TAAK,
     TASK_LABEL_TOETS,
     TASK_LABEL_MEEBRENGEN
@@ -49,6 +54,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         self._numberOfTasksNext = None
         self._messages = None
         self._results = None
+        self._planner_assignments = None
         self._total_result = None
         
         #  🇫🇷🇳🇱✝️🌎🎼🏛️🏺📜🧮🟰🏀🎨🤯🚸
@@ -71,7 +77,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 "TE": "🪛 ",
                 "NW": "🧪 ",
                 "CH": "🧪 ",
-                "LEEFS & TRAJ": "🗝️ "
+                "LEEFS & TRAJ": "🗝️ ",
+                "Algemeen": "🚩 "
         }
 
     async def async_initialize(self):
@@ -102,6 +109,13 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
                 self._results = await self._hass.async_add_executor_job(lambda: self._session.getResults())
 
+                from_date = datetime.now()
+                self._planner_assignments = await self._hass.async_add_executor_job(lambda: self._session.getPlanner(from_date=from_date, till_date=from_date + timedelta(days=30)))
+                self._planner_assignments.sort(key=lambda x: x.period.dateTimeFrom)
+                # _LOGGER.debug(f"{DOMAIN} update planner completed with planner data: {self._planner_assignments}")
+                self._planner_lessons = await self._hass.async_add_executor_job(lambda: self._session.getPlanner(from_date=from_date, till_date=from_date + timedelta(days=16), planner_type="planned-lessons,planned-placeholders,planned-school-activities"))
+                self._planner_lessons.sort(key=lambda x: x.period.dateTimeFrom)
+                _LOGGER.debug(f"{DOMAIN} update planner completed with planner data: {self._planner_lessons}")
                 self._last_updated = datetime.now()
 
             await self._async_local_refresh_data()
@@ -128,23 +142,242 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         next_schoolday = None
         number_of_tasks_next = 0
 
+        _LOGGER.debug(f"{DOMAIN} refreshing local data for user {self._username}, future_tasks: {self._future_tasks}, agenda: {self._agenda}, messages: {self._messages}, results: {self._results}, planner: {self._planner_assignments}")
+
+        if self._agenda and len(self._agenda) > 0:
+            # Extract the date part, example value: date: 2023-06-01
+            self.extract_next_schoolday_from_agenda()  
+        else:
+            _LOGGER.debug(f"{DOMAIN} no agenda items found for user {self._username}")
+            #next schoolday is next day excluding weekends, example value: next_schoolday: 2023-06-01
+            # next_schoolday = self.calculate_next_schoolday()
+            next_schoolday = self.extract_next_schoolday_from_planner_lessons()
+            if not next_schoolday:
+                _LOGGER.debug(f"{DOMAIN} no planner lessons found for user {self._username}, calculating next schoolday based on current date")
+                next_schoolday = self.calculate_next_schoolday() 
+            
+            _LOGGER.debug(f"{DOMAIN} calculated next schoolday: {next_schoolday} for user {self._username}")
+
+        if self._future_tasks and len(self._future_tasks.days) > 0: 
+            # no more used
+            _LOGGER.debug(f"{DOMAIN} extracting future tasks for user {self._username}")
+            number_of_tasks_next = self.extract_agenda_future_tasks(current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next)
+
+
+        if self._planner_assignments and len(self._planner_assignments) > 0: 
+            _LOGGER.debug(f"{DOMAIN} extracting planner assignments for user {self._username}")
+            number_of_tasks_next = self.extract_planner_assignments(current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next)
+
+
+        #School bag list
+        if next_schoolday:
+            next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d").date()
+            # only needed in fetced from agenda
+            if self._agenda and len(self._agenda) > 0:
+                self.schoolbag_from_agenda(current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate)
+            else:
+                self.schoolbag_from_planner_lessons(current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate)
+
+        if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
+            _LOGGER.debug(f"{DOMAIN} valid uids: {valid_uids}, list {self._unique_user_id}")
+            # self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
+
+        self._lists = new_lists
+        self._numberOfTasksNext = number_of_tasks_next
+
+        self._number_of_read_messages = 0
+        self._number_of_outstanding_messages = 0
+        self._total_number_of_messages = 0
+
+        for message in self._messages:
+            if message.status == 1:
+                self._number_of_read_messages = self._number_of_read_messages + 1
+            elif message.status == 0:    
+                self._number_of_outstanding_messages = self._number_of_outstanding_messages + 1 
+            self._total_number_of_messages = self._total_number_of_messages + 1
+
+        self._number_of_read_messages
+        self._number_of_outstanding_messages
+        self._total_number_of_messages
+            
+
+        self._total_result = None
+        self._results_per_course = {}
+        self._results_per_course_max = {}
+        subtotal = 0
+        max_score = 0
+        numberOfResults = 0
+        
+        _LOGGER.debug(f"{DOMAIN} planner: {self._planner_assignments}")
+        _LOGGER.debug(f"{DOMAIN} results: {self._results}")
+        if self._results is None or len(self._results) == 0:
+            _LOGGER.debug(f"{DOMAIN} no results found for user {self._unique_user_id}")
+            return
+        for result in self._results:
+            if result.doesCount and result.type == "normal":
+                numberOfResults = numberOfResults + 1
+                desc = getattr(result.graphic, "description", "") or ""
+                current_result = 0.0
+                max_current_result = 0.0
+                if "/" in desc:
+                    try:
+                        parts = desc.split("/", 1)
+                        current_result = float(parts[0].strip().replace(",", "."))
+                        max_current_result = float(parts[1].strip().replace(",", "."))
+                    except (ValueError, TypeError):
+                        # keep defaults (0.0) if parsing fails
+                        _LOGGER.warning(f"{DOMAIN} Failed to parse result description: '{desc}' for result {result}. Expected format 'current/max'.")
+                        pass
+                else:
+                    continue
+                _LOGGER.debug(f"{DOMAIN} parsed result: {current_result}, max_current_result: {max_current_result} from description: '{desc}' for result {result}")
+                subtotal = subtotal + current_result
+                max_score = max_score + max_current_result
+                course_name = result.courses[0].name if result.courses else "Unknown Course"
+                course_name = course_name.split(" - ")[0] if " - " in course_name else course_name
+                currentCourseResult = self._results_per_course.get(f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
+                currentCourseResultMax = self._results_per_course_max.get(f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
+                if currentCourseResult == {}:
+                    self._results_per_course[f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResult
+                    self._results_per_course_max[f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResultMax
+                currentComponentResult = currentCourseResult.get(result.component.name, None)
+                if currentComponentResult is None:
+                    currentCourseResult[result.component.name] = current_result
+                    currentCourseResultMax[result.component.name] = max_current_result
+                else:
+                    currentComponentResultMax = currentCourseResultMax.get(result.component.name, 0)
+                    currentCourseResult[result.component.name] = (currentComponentResult + current_result)
+                    currentCourseResultMax[result.component.name] = currentComponentResultMax + max_current_result
+        
+        _LOGGER.debug(f"{DOMAIN} results per course: {self._results_per_course}")
+        _LOGGER.debug(f"{DOMAIN} results per course max: {self._results_per_course_max}")
+        if numberOfResults > 0 and max_score > 0: 
+            self._total_result = round((subtotal / max_score) * 100, 0)
+        return
+
+    def schoolbag_from_agenda(self, current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate):
+        for agendaItem in self._agenda:
+            _LOGGER.debug(f"{DOMAIN} agendaItem: {agendaItem}, agendaItem.date: {agendaItem.date}, next_schoolday: {next_schoolday}")
+            agendaItemDate = datetime.strptime(f"{agendaItem.date}", "%Y-%m-%d")
+            if agendaItem.date == next_schoolday:
+                agendaItemHour = agendaItem.hourValue
+                if agendaItemHour:
+                        # Extract the start time part, example value: hourValue: 15:10 - 16:00
+                    start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
+                        # Combine date and time into a single datetime object
+                    start_datetime = datetime.strptime(f"{agendaItem.date} {start_time_str}", "%Y-%m-%d %H:%M")
+                course_icon = self._course_icons.get(agendaItem.course,"")
+                status = self._status_store.get_status(self._unique_user_id, agendaItem.momentID)
+                summary = f"{course_icon}{agendaItem.course} {agendaItem.hour}"
+                subjectline =  ((agendaItem.subject + ' ') if agendaItem.subject else '') + ((agendaItem.courseTitle + ' ') if agendaItem.courseTitle else '')
+                roomLine = ((agendaItem.classroom + ', ') if agendaItem.classroom else '') + (agendaItem.teacher if agendaItem.teacher else '')
+                timeLine = agendaItem.hourValue
+                    # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
+                description = ((subjectline + '\n') if len(subjectline) > 0 else '') + ((roomLine + '\n') if len(roomLine) > 0 else '') + timeLine
+                agendatItemUid = f"{agendaItem.momentID}-{agendaItem.hourID}-{agendaItem.lessonID}-{agendaItem.date}-{agendaItem.activityID}"
+                valid_uids.add(agendatItemUid)
+                new_lists[current_list_schooltas].append(TodoItem(
+                        uid=agendatItemUid,
+                        summary=summary,
+                        status=TodoItemStatus(status),
+                        description=description,
+                        due=start_datetime
+                    ))
+            elif agendaItemDate.date() > next_schooldayDate:
+                break
+            else:
+                continue
+
+
+    def schoolbag_from_planner_lessons(self, current_list_schooltas, new_lists, valid_uids, next_schoolday, next_schooldayDate):
+        # for agendaItem in self._agenda:
+        for plannerItem in self._planner_lessons:
+            # _LOGGER.debug(f"{DOMAIN} planner item: {plannerItem}")
+            # _LOGGER.debug(f"{DOMAIN} period to: {plannerItem.period.dateTimeTo}")
+            # _LOGGER.debug(f"{DOMAIN} leerkracht: {plannerItem.organisers.users[0].name.startingWithLastName if plannerItem.organisers.users else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} klas: {plannerItem.participants.groups[0].name if plannerItem.participants.groups else 'unknown'}")
+            _LOGGER.debug(f"{DOMAIN} type: {plannerItem.plannedElementType}, {plannerItem.assignmentType.name if plannerItem.assignmentType else 'unknown'}, {plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} vak: {plannerItem.courses[0].name if plannerItem.courses else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} lokaal: {plannerItem.locations[0].title if plannerItem.locations else 'unknown'}")
+            _LOGGER.debug(f"{DOMAIN} beschrijving: {plannerItem.name}")
+            # _LOGGER.debug(f"{DOMAIN} status: {plannerItem.resolvedStatus}")
+            # _LOGGER.debug(f"{DOMAIN} planner item end ---")
+            _LOGGER.debug(f"{DOMAIN} plannerItem: {plannerItem}, plannerItem.date: {plannerItem.period.dateTimeFrom}, next_schoolday: {next_schoolday}")
+            agendaItemDateString = plannerItem.period.dateTimeFrom.strftime("%Y-%m-%d")
+            lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
+            task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
+            if agendaItemDateString == next_schoolday:
+                agendaItemHour = lesson_hour
+                start_datetime = plannerItem.period.dateTimeFrom
+                course_name = plannerItem.courses[0].name if plannerItem.courses else 'Algemeen'
+                course_icon = self._course_icons.get(course_name,"")
+                lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
+                task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
+                assignment_description = plannerItem.name if plannerItem.name else ''
+                summary = f"{course_icon}{course_name}, {plannerItem.locations[0].title} - {task_weekday} {lesson_hour}"
+                valid_uids.add(plannerItem.id)
+                status = self._status_store.get_status(self._unique_user_id, plannerItem.id)
+
+                subjectline =  assignment_description
+                timeLine = agendaItemHour
+                    # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
+                description = subjectline
+                agendatItemUid = plannerItem.id
+                valid_uids.add(agendatItemUid)
+                new_lists[current_list_schooltas].append(TodoItem(
+                        uid=agendatItemUid,
+                        summary=summary,
+                        status=TodoItemStatus(status),
+                        description=description,
+                        due=start_datetime
+                    ))
+            elif plannerItem.period.dateTimeFrom.date() > next_schooldayDate:
+                break
+            else:
+                continue
+
+    def calculate_next_schoolday(self):
+        # holidays = self._smartschool.get_holidays()
+        next_schoolday_date = datetime.now()
+        while True:
+            next_schoolday_date += timedelta(days=1)
+            # if next_schoolday_date.weekday() >= 5 or next_schoolday_date in holidays:
+            if next_schoolday_date.weekday() >= 5:
+                continue
+            break
+        next_schoolday = next_schoolday_date.strftime("%Y-%m-%d")
+        # next_schoolday = next_schoolday_date
+        return next_schoolday
+
+    def extract_next_schoolday_from_agenda(self):
         for agendaItem in self._agenda:
             agendaItemDate = agendaItem.date
             agendaItemHour = agendaItem.hourValue
             if agendaItemHour:
-                # Extract the start time part, example value: hourValue: 15:10 - 16:00
+                    # Extract the start time part, example value: hourValue: 15:10 - 16:00
                 start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
-                # Combine date and time into a single datetime object
+                    # Combine date and time into a single datetime object
                 start_datetime = datetime.strptime(f"{agendaItemDate} {start_time_str}", "%Y-%m-%d %H:%M")
                 if start_datetime > datetime.now():
                     next_schoolday = agendaItemDate
                     _LOGGER.debug(f"{DOMAIN} next schoolday: {next_schoolday}")
-                    break  
+                    break
+    
+    def extract_next_schoolday_from_planner_lessons(self):
+        next_schoolday = None
+        for plannerItem in self._planner_lessons:
+            dt_from = plannerItem.period.dateTimeFrom
+            if dt_from > datetime.now(dt_from.tzinfo):
+                next_schoolday = dt_from.strftime("%Y-%m-%d")
+                _LOGGER.debug(f"{DOMAIN} next schoolday from planner lessons: {next_schoolday}")
+                break
+        return next_schoolday
 
+
+    def extract_agenda_future_tasks(self, current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next):
         for day in self._future_tasks.days:
             for course in day.courses:
                 for task in course.items.tasks:
-                    
                     # course_name = course.course_title.split(" - ")[1] if " - " in course.course_title else course.course_title
                     course_name = task.course
                     course_icon = self._course_icons.get(course_name,"")
@@ -196,113 +429,101 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                                 description=description_next,
                                 due=task.date
                             ))
+                            
+        return number_of_tasks_next
+    
+    def format_planner_date(self, dt: datetime, now: datetime | None = None) -> str:
+        now = now or datetime.now(dt.tzinfo)
+
+        # Monday=0 ... Friday=4 ... Sunday=6
+        days_until_friday = max(0, 4 - now.weekday())
+        upcoming_friday = now.date() + timedelta(days=days_until_friday)
+        upcoming_friday = now.date() + timedelta(days=6)
+
+        if dt.date() <= upcoming_friday:
+            return dt.strftime("%a")       # Mon (use %A for Monday)
+        return dt.strftime("%a %d/%m")     # Mon 09/03
+    
+    def extract_planner_assignments(self, current_list_taken, current_list_toetsen, current_list_meebrengen, current_list_volgende, current_list_schooltas, new_lists, valid_uids, next_schoolday, number_of_tasks_next):
+        for plannerItem in self._planner_assignments:
+            # _LOGGER.debug(f"{DOMAIN} planner item: {plannerItem}")
+            # _LOGGER.debug(f"{DOMAIN} period to: {plannerItem.period.dateTimeTo}")
+            # _LOGGER.debug(f"{DOMAIN} leerkracht: {plannerItem.organisers.users[0].name.startingWithLastName if plannerItem.organisers.users else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} klas: {plannerItem.participants.groups[0].name if plannerItem.participants.groups else 'unknown'}")
+            _LOGGER.debug(f"{DOMAIN} type: {plannerItem.plannedElementType}, {plannerItem.assignmentType.name if plannerItem.assignmentType else 'unknown'}, {plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} vak: {plannerItem.courses[0].name if plannerItem.courses else 'unknown'}")
+            # _LOGGER.debug(f"{DOMAIN} lokaal: {plannerItem.locations[0].title if plannerItem.locations else 'unknown'}")
+            _LOGGER.debug(f"{DOMAIN} beschrijving: {plannerItem.name}")
+            # _LOGGER.debug(f"{DOMAIN} status: {plannerItem.resolvedStatus}")
+            # _LOGGER.debug(f"{DOMAIN} planner item end ---")
 
 
-        #School bag list
-        if next_schoolday:
-            next_schooldayDate = datetime.strptime(f"{next_schoolday}", "%Y-%m-%d")
-            for agendaItem in self._agenda:
-                _LOGGER.debug(f"{DOMAIN} agendaItem: {agendaItem}, agendaItem.date: {agendaItem.date}, next_schoolday: {next_schoolday}")
-                agendaItemDate = datetime.strptime(f"{agendaItem.date}", "%Y-%m-%d")
-                if agendaItem.date == next_schoolday:
-                    agendaItemHour = agendaItem.hourValue
-                    if agendaItemHour:
-                        # Extract the start time part, example value: hourValue: 15:10 - 16:00
-                        start_time_str = agendaItemHour.split(" - ")[0]  # "15:10"
-                        # Combine date and time into a single datetime object
-                        start_datetime = datetime.strptime(f"{agendaItem.date} {start_time_str}", "%Y-%m-%d %H:%M")
-                    course_icon = self._course_icons.get(agendaItem.course,"")
-                    status = self._status_store.get_status(self._unique_user_id, agendaItem.momentID)
-                    summary = f"{course_icon}{agendaItem.course} {agendaItem.hour}"
-                    subjectline =  ((agendaItem.subject + ' ') if agendaItem.subject else '') + ((agendaItem.courseTitle + ' ') if agendaItem.courseTitle else '')
-                    roomLine = ((agendaItem.classroom + ', ') if agendaItem.classroom else '') + (agendaItem.teacher if agendaItem.teacher else '')
-                    timeLine = agendaItem.hourValue
-                    # _LOGGER.debug(f"{DOMAIN} subjectline: {subjectline}, roomLine: {roomLine}, timeLine: {timeLine}")
-                    description = ((subjectline + '\n') if len(subjectline) > 0 else '') + ((roomLine + '\n') if len(roomLine) > 0 else '') + timeLine
-                    agendatItemUid = f"{agendaItem.momentID}-{agendaItem.hourID}-{agendaItem.lessonID}-{agendaItem.date}-{agendaItem.activityID}"
-                    valid_uids.add(agendatItemUid)
+            course_name = plannerItem.courses[0].name if plannerItem.courses else 'Algemeen'
+            course_icon = self._course_icons.get(course_name,"")
+            lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
+            task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
+            task_type = plannerItem.assignmentType.name
+            task_type_abbreviation = plannerItem.assignmentType.abbreviation
+            assignment_description = plannerItem.name
+            summary = f"{course_icon}{course_name} {task_type}, {task_weekday} {lesson_hour}"
+            if task_type == PLANNER_LABEL_TAAK:
+                list_id = current_list_taken
+                action_icon = "🛠️"
+            elif task_type == PLANNER_LABEL_TOETS:
+                list_id = current_list_toetsen
+                # action_icon = "🤯"
+                action_icon = "💡"
+            elif task_type == PLANNER_LABEL_HERHALINGSTOETS:
+                list_id = current_list_toetsen
+                # action_icon = "🤯"
+                action_icon = "💡"
+            elif task_type == PLANNER_LABEL_EXAMEN:
+                list_id = current_list_toetsen
+                # action_icon = "🤯"
+                action_icon = "💡"
+            else:
+                _LOGGER.warning(f"{DOMAIN} found planner item with unknown type: {task_type}, defaulting to meebrengen list, planner item: {plannerItem}")  
+                list_id = current_list_meebrengen
+                assignment_description = f"{course_icon}{course_name} ({task_weekday} {lesson_hour})"
+                summary = plannerItem.name
+                action_icon = "🎒"
+
+            valid_uids.add(plannerItem.id)
+            status = self._status_store.get_status(self._unique_user_id, plannerItem.id)
+            if plannerItem.resolvedStatus == "resolved":
+                status = "completed"
+                self._status_store.set_status(self._unique_user_id, plannerItem.id, status)
+            new_lists[list_id].append(TodoItem(
+                uid=plannerItem.id,
+                summary=summary,
+                status=TodoItemStatus(status),
+                description=assignment_description,
+                due=plannerItem.period.dateTimeFrom
+            ))
+            
+            if plannerItem.period.dateTimeFrom == None or plannerItem.period.dateTimeFrom.strftime("%Y-%m-%d") == next_schoolday:
+                number_of_tasks_next = number_of_tasks_next + 1
+                summary_next = f"{action_icon} {course_icon}{course_name}: {task_type}, {lesson_hour}"
+                description_next = assignment_description
+                new_lists[current_list_volgende].append(TodoItem(
+                    uid=plannerItem.id,
+                    summary=f"{summary_next}",
+                    status=TodoItemStatus(status),
+                    description=description_next,
+                    due=plannerItem.period.dateTimeFrom
+                ))
+
+                
+                if task_type == PLANNER_LABEL_MEEBRENGEN:
                     new_lists[current_list_schooltas].append(TodoItem(
-                        uid=agendatItemUid,
-                        summary=summary,
+                        uid=plannerItem.id,
+                        summary=summary_next,
                         status=TodoItemStatus(status),
-                        description=description,
-                        due=start_datetime
+                        description=description_next,
+                        due=plannerItem.period.dateTimeFrom
                     ))
-                elif agendaItemDate > next_schooldayDate:
-                    break
-                else:
-                    continue
-
-        if len(valid_uids) > 0: # Only remove unused items if we have valid_uids.
-            _LOGGER.debug(f"{DOMAIN} valid uids: {valid_uids}, list {self._unique_user_id}")
-            # self._status_store.remove_unused_items(self._unique_user_id, valid_uids)
-
-        self._lists = new_lists
-        self._numberOfTasksNext = number_of_tasks_next
-
-        self._number_of_read_messages = 0
-        self._number_of_outstanding_messages = 0
-        self._total_number_of_messages = 0
-
-        for message in self._messages:
-            if message.status == 1:
-                self._number_of_read_messages = self._number_of_read_messages + 1
-            elif message.status == 0:    
-                self._number_of_outstanding_messages = self._number_of_outstanding_messages + 1 
-            self._total_number_of_messages = self._total_number_of_messages + 1
-
-        self._number_of_read_messages
-        self._number_of_outstanding_messages
-        self._total_number_of_messages
-
-        self._total_result = None
-        self._results_per_course = {}
-        self._results_per_course_max = {}
-        subtotal = 0
-        max_score = 0
-        numberOfResults = 0
-        _LOGGER.debug(f"{DOMAIN} results: {self._results}")
-        for result in self._results:
-            if result.doesCount:
-                numberOfResults = numberOfResults + 1
-                desc = getattr(result.graphic, "description", "") or ""
-                current_result = 0.0
-                max_current_result = 0.0
-                if "/" in desc:
-                    try:
-                        parts = desc.split("/", 1)
-                        current_result = float(parts[0].strip().replace(",", "."))
-                        max_current_result = float(parts[1].strip().replace(",", "."))
-                    except (ValueError, TypeError):
-                        # keep defaults (0.0) if parsing fails
-                        _LOGGER.warning(f"{DOMAIN} Failed to parse result description: '{desc}' for result {result}. Expected format 'current/max'.")
-                        pass
-                else:
-                    continue
-                _LOGGER.debug(f"{DOMAIN} parsed result: {current_result}, max_current_result: {max_current_result} from description: '{desc}' for result {result}")
-                subtotal = subtotal + current_result
-                max_score = max_score + max_current_result
-                course_name = result.courses[0].name if result.courses else "Unknown Course"
-                course_name = course_name.split(" - ")[0] if " - " in course_name else course_name
-                currentCourseResult = self._results_per_course.get(f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
-                currentCourseResultMax = self._results_per_course_max.get(f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})", {})
-                if currentCourseResult == {}:
-                    self._results_per_course[f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResult
-                    self._results_per_course_max[f"{course_name} ({result.courses[0].teachers[0].name.startingWithLastName})"] = currentCourseResultMax
-                currentComponentResult = currentCourseResult.get(result.component.name, None)
-                if currentComponentResult is None:
-                    currentCourseResult[result.component.name] = current_result
-                    currentCourseResultMax[result.component.name] = max_current_result
-                else:
-                    currentComponentResultMax = currentCourseResultMax.get(result.component.name, 0)
-                    currentCourseResult[result.component.name] = (currentComponentResult + current_result)
-                    currentCourseResultMax[result.component.name] = currentComponentResultMax + max_current_result
-        
-        _LOGGER.debug(f"{DOMAIN} results per course: {self._results_per_course}")
-        _LOGGER.debug(f"{DOMAIN} results per course max: {self._results_per_course_max}")
-        if numberOfResults > 0 and max_score > 0: 
-            self._total_result = round((subtotal / max_score) * 100, 0)
-        return
+                            
+        return number_of_tasks_next
 
     def get_items(self, list_id):
         return self._lists.get(list_id, [])

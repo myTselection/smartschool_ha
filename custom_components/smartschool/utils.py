@@ -12,6 +12,7 @@ import urllib.parse
 from ratelimit import limits, sleep_and_retry
 
 import voluptuous as vol
+from custom_components.smartschool.smartschool_api.planner import ApplicableAssignmentTypes, Planner
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import (
     DOMAIN,
@@ -69,7 +70,11 @@ class ComponentSession(object):
     @sleep_and_retry
     @limits(calls=1, period=5)
     def getResults(self):
-        results = list(Results(smartschool=self.smartschool))
+        results = []
+        try:
+            results = list(Results(smartschool=self.smartschool))
+        except Exception as e:
+            _LOGGER.error(e)
         return results
     
     @sleep_and_retry
@@ -77,3 +82,17 @@ class ComponentSession(object):
     def getMessages(self, timestamp_to_use: datetime | None = None):
         agenda = list(MessageHeaders(smartschool=self.smartschool))
         return agenda
+    
+    
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    def getPlanner(self, from_date: datetime | None = None, till_date: datetime | None = None, planner_type: str | None = None):
+        results = list(Planner(smartschool=self.smartschool, from_date=from_date, till_date=till_date, planner_type=planner_type))
+        return results
+    
+    
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    def getApplicableAssignmentTypes(self):
+        results = list(ApplicableAssignmentTypes(smartschool=self.smartschool))
+        return results
