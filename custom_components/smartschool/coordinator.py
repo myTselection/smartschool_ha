@@ -314,7 +314,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
                 task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
                 assignment_description = plannerItem.name if plannerItem.name else ''
-                summary = f"{course_icon}{course_name}, {plannerItem.locations[0].title} - {task_weekday} {lesson_hour}"
+                location = plannerItem.locations[0].title if plannerItem.locations and len(plannerItem.locations) > 0 else ''
+                summary = f"{course_icon}{course_name}, {location} - {task_weekday} {lesson_hour}"
                 valid_uids.add(plannerItem.id)
                 status = self._status_store.get_status(self._unique_user_id, plannerItem.id)
 
