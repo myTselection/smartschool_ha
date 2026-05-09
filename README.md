@@ -43,7 +43,9 @@ This application has been [forked and extended](https://github.com/myTselection/
   - password: password of the child account or password of the parent account
   - MFA: 
     - when using child account, this is by default the date of birth of the child, notation YYYY-MM-DD
-    - when using a parent account or if 2FA has been enabled, the Google Authenticator secret is to be set (see Smartschool > Profile > Login with 2 steps > [Authenticator app](https://school.smartschool.be/profile/twofactor/googleAuthenticator)). If the secret is not known, the Authenticator app will need to be re-linked. During setup of the authenticator app, the 2FA secret can be shown instead of the QR code) 
+    - when using a parent account or if 2FA has been enabled, the Google Authenticator secret is to be set (see Smartschool > Profile > Login with 2 steps > [Authenticator app](https://school.smartschool.be/profile/twofactor/googleAuthenticator)). The initial token during setup of 2FA is to be configured in this integration. This token is shown in the QR code but by using the option "No camera" the token value will be shown by SmartSchool.
+    - <img width="763" height="624" alt="image" src="https://github.com/user-attachments/assets/590c1af3-7b3f-4dfc-b17c-70fe0d740388" />
+    If this secret is not known (eg because of previously setup 2FA), the Authenticator app will need to be deactivaed and re-activated again. During setup of the authenticator app, the 2FA secret can be shown instead of the QR code.
 
 </details>
 
