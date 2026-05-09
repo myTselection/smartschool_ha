@@ -17,6 +17,7 @@ from .const import (
     LIST_MEEBRENGEN,
     LIST_VOLGENDE,
     LIST_SCHOOLTAS,
+    PLANNER_LABEL_GROTE_TAAK,
     PLANNER_LABEL_MEEBRENGEN,
     PLANNER_LABEL_TAAK,
     PLANNER_LABEL_TOETS,
@@ -472,6 +473,10 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             if task_type == PLANNER_LABEL_TAAK:
                 list_id = current_list_taken
                 action_icon = "🛠️"
+            elif task_type == PLANNER_LABEL_GROTE_TAAK:
+                list_id = current_list_taken
+                # action_icon = "🤯"
+                action_icon = "🛠️🛠️"
             elif task_type == PLANNER_LABEL_TOETS:
                 list_id = current_list_toetsen
                 # action_icon = "🤯"

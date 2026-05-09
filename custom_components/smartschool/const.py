@@ -15,6 +15,7 @@ TASK_LABEL_MEEBRENGEN = "Meebrengen / afwerken"
 
 
 PLANNER_LABEL_TAAK = "Taak"
+PLANNER_LABEL_GROTE_TAAK = "Grote taak"
 PLANNER_LABEL_TOETS = "Gewone toets"
 PLANNER_LABEL_HERHALINGSTOETS = "Herhalingstoets"
 PLANNER_LABEL_EXAMEN = "Examen"
