@@ -75,8 +75,10 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 "WI": "🧮 ",
                 "M&S": "🚸 ",
                 "TE": "🪛 ",
-                "NW": "🧪 ",
+                "NW": "🧬 ",
                 "CH": "🧪 ",
+                "FY": "📐 ",
+                "BI": "🌱 ",
                 "LEEFS & TRAJ": "🗝️ ",
                 "Algemeen": "🚩 "
         }
