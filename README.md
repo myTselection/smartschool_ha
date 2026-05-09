@@ -12,14 +12,13 @@
 
 While the official Smartschool mobile app offers more features and details, I personally found it challenging to keep track of my children's homework. That’s why I created this integration — to provide a simple checklist that allows me or my kids to tick off tasks as they’re completed. Multiple types of checklists will be created: for tracking homework due the next school day, packing schoolbag essentials, managing all upcoming assignments, and keeping track of all upcoming lessons to study. Item check-offs are handled locally within Home Assistant; completed actions are not synced back to Smartschool. Older homework and activities are automatically removed as soon as the due day has passed.
 
+Update 09/2025: Smartschool stopped the usage of the Smartschool "Agenda". Now, all schools need to use the "Planner" and "To-do's". 
+
+
 This integration is in no way affiliated with Smartschool. 
 | :warning: Please don't report issues with this integration to Smartschool, they will not be able to support you. |
 | ----------------------------------------------------------------------------------------------------------------------|
 
-
-## Update 09/2025
-Smartschool stopped the usage of the Smartschool "Agenda". Now, all schools need to use the "Planner" and "To-do's". The functionalities that were missing in the agenda (mark tasks as done) are now available in the Planner and Todo's of Smartschool. As a consequence, the added value of this integration seems currently very limited. 
-I will evaluate over time if Planner and Todo integration in Home Assistant would be usefull.
 
 
 ## Background
@@ -38,6 +37,7 @@ This application has been [forked and extended](https://github.com/myTselection/
 - Restart Home Assistant
 - Add 'Smartschool' integration via HA Settings > 'Devices and Services' > 'Integrations'
 - Provide Smartschool credentials:
+  - <img width="584" height="591" alt="image" src="https://github.com/user-attachments/assets/d5155320-ef84-47cd-9437-8ad596efa14a" />
   - smartschool domain: this should be the url used to login, eg '_school_.smartschool.be'
   - username: username, typically the first and last name of the child
   - password: password of the child account or password of the parent account
