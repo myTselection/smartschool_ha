@@ -465,8 +465,8 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
             course_icon = self._course_icons.get(course_name,"")
             lesson_hour = plannerItem.period.dateTimeFrom.strftime("%H:%M")
             task_weekday = self.format_planner_date(plannerItem.period.dateTimeFrom)
-            task_type = plannerItem.assignmentType.name
-            task_type_abbreviation = plannerItem.assignmentType.abbreviation
+            task_type = plannerItem.assignmentType.name if plannerItem.assignmentType else 'Type Onbekend'
+            task_type_abbreviation = plannerItem.assignmentType.abbreviation if plannerItem.assignmentType else ''
             assignment_description = plannerItem.name
             summary = f"{course_icon}{course_name} {task_type}, {task_weekday} {lesson_hour}"
             if task_type == PLANNER_LABEL_TAAK:
