@@ -489,6 +489,11 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 list_id = current_list_toetsen
                 # action_icon = "🤯"
                 action_icon = "💡"
+            elif task_type == PLANNER_LABEL_MEEBRENGEN:
+                list_id = current_list_meebrengen
+                assignment_description = f"{course_icon}{course_name} ({task_weekday} {lesson_hour})"
+                summary = plannerItem.name
+                action_icon = "🎒"
             else:
                 _LOGGER.warning(f"{DOMAIN} found planner item with unknown type: {task_type}, defaulting to meebrengen list, planner item: {plannerItem}")  
                 list_id = current_list_meebrengen
