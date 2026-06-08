@@ -18,11 +18,13 @@ from .const import (
     LIST_VOLGENDE,
     LIST_SCHOOLTAS,
     PLANNER_LABEL_GROTE_TAAK,
+    PLANNER_LABEL_INHAALTOETS,
     PLANNER_LABEL_MEEBRENGEN,
     PLANNER_LABEL_TAAK,
     PLANNER_LABEL_TOETS,
     PLANNER_LABEL_HERHALINGSTOETS,
     PLANNER_LABEL_EXAMEN,
+    TASK_LABEL_INHAALTOETS,
     TASK_LABEL_TAAK,
     TASK_LABEL_TOETS,
     TASK_LABEL_MEEBRENGEN
@@ -392,7 +394,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                     if task.label == TASK_LABEL_TAAK:
                         list_id = current_list_taken
                         action_icon = "🛠️"
-                    elif task.label == TASK_LABEL_TOETS:
+                    elif task.label in (TASK_LABEL_TOETS,TASK_LABEL_INHAALTOETS):
                         list_id = current_list_toetsen
                         # action_icon = "🤯"
                         action_icon = "💡"
@@ -477,15 +479,7 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
                 list_id = current_list_taken
                 # action_icon = "🤯"
                 action_icon = "🛠️🛠️"
-            elif task_type == PLANNER_LABEL_TOETS:
-                list_id = current_list_toetsen
-                # action_icon = "🤯"
-                action_icon = "💡"
-            elif task_type == PLANNER_LABEL_HERHALINGSTOETS:
-                list_id = current_list_toetsen
-                # action_icon = "🤯"
-                action_icon = "💡"
-            elif task_type == PLANNER_LABEL_EXAMEN:
+            elif task_type or (PLANNER_LABEL_TOETS, PLANNER_LABEL_INHAALTOETS, PLANNER_LABEL_HERHALINGSTOETS, PLANNER_LABEL_EXAMEN):
                 list_id = current_list_toetsen
                 # action_icon = "🤯"
                 action_icon = "💡"
