@@ -69,6 +69,9 @@ A sensor `sensor.smartschool_[username]_[school]_results` will be added showing 
 Since the results are not always available (some schools only make them available at specific intervals), this hasn't been tested yet. Extra results per course might be made availble later on, once tested.
 The sensor also shows the last update from Smartschool in the attribut last_update.
 
+### Button
+
+Per Smartschool account, a "Button" is available to mark all UNREAD smartschool messages as read at once.
 
 ### Todo lists:
   - Separate Todo list for "Toetsen", "Taken", "Meebrengen", "Volgende" and "Schooltas"
@@ -98,7 +101,7 @@ I recently [discovered](https://community.home-assistant.io/t/template-with-cale
 
 Home Assistant support importing iCal calendar using the default "[Remote Calendar](https://www.home-assistant.io/integrations/remote_calendar/)" integration. Add the url retrieved from Smartschool > Go To > Schoolagenda > Export. 
 
-Still testing the options of this calendar integration, will probably have to wait till september to get some usefull data into it.
+Still testing the options of this calendar integration.
 
 ## Status
 
