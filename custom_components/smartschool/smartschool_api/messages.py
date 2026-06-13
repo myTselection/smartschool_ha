@@ -16,6 +16,7 @@ __all__ = [
     "MessageHeaders",
     "Message",
     "Attachments",
+    "MarkMessageRead",
     "MarkMessageUnread",
     "AdjustMessageLabel",
     "MessageMoveToArchive",
@@ -209,6 +210,39 @@ class Attachments(_FetchOneMessage):
     @property
     def _object_to_instantiate(self) -> type[Attachment]:
         return Attachment
+
+
+class MarkMessageRead(_MessagesPoster, SmartschoolXML_NoCache):
+    def __init__(self, smartschool: Smartschool, msg_id: int, box_type: BoxType = BoxType.INBOX):
+        super().__init__(smartschool=smartschool)
+
+        self.msg_id = msg_id
+        self.box_type = box_type
+
+    @property
+    def _subsystem(self) -> str:
+        return "postboxes"
+
+    @property
+    def _action(self) -> str:
+        return "mark message read"
+
+    @property
+    def _xpath(self) -> str:
+        return ".//data/message"
+
+    @property
+    def _object_to_instantiate(self) -> type[MessageChanged]:
+        return MessageChanged
+
+    @property
+    def _params(self) -> dict:
+        return {
+            "boxType": self.box_type.value,
+            "boxID": "0",
+            "msgID": self.msg_id,
+            "clAction": "status",
+        }
 
 
 class MarkMessageUnread(_FetchOneMessage):

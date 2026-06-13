@@ -35,7 +35,7 @@ from .utils import *
 import re
 
 
-_LOGGER = logging.getLogger(DOMAIN)
+_LOGGER = logging.getLogger(__name__)
 
 class ComponentUpdateCoordinator(DataUpdateCoordinator):
 
@@ -556,6 +556,13 @@ class ComponentUpdateCoordinator(DataUpdateCoordinator):
         return self._results_per_course
     def get_results_per_course_max(self):
         return self._results_per_course_max
+
+    async def async_mark_all_unread_messages_read(self):
+        marked_count = await self._hass.async_add_executor_job(lambda: self._session.markAllUnreadMessagesRead())
+        self._messages = await self._hass.async_add_executor_job(lambda: self._session.getMessages())
+        await self._async_local_refresh_data()
+        self.async_set_updated_data(self._lists)
+        return marked_count
 
 
     async def update_status(self, unique_user_id, uid, status):

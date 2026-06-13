@@ -18,7 +18,7 @@ from .const import (
     DOMAIN,
 )
 
-_LOGGER = logging.getLogger(DOMAIN)
+_LOGGER = logging.getLogger(__name__)
 
 def check_settings(config, hass):
     if not any(config.get(i) for i in ["username"]):
@@ -39,7 +39,8 @@ from .smartschool_api import (
     FutureTasks,
     SmartschoolLessons, 
     Results,
-    MessageHeaders
+    MessageHeaders,
+    MarkMessageRead
 )
 
 class ComponentSession(object):
@@ -82,6 +83,16 @@ class ComponentSession(object):
     def getMessages(self, timestamp_to_use: datetime | None = None):
         agenda = list(MessageHeaders(smartschool=self.smartschool))
         return agenda
+
+    @sleep_and_retry
+    @limits(calls=1, period=5)
+    def markAllUnreadMessagesRead(self):
+        messages = self.getMessages()
+        unread_messages = [message for message in messages if message.status == 0 and message.unread]
+        for message in unread_messages:
+            list(MarkMessageRead(smartschool=self.smartschool, msg_id=message.id))
+
+        return len(unread_messages)
     
     
     @sleep_and_retry

@@ -7,7 +7,7 @@ def setup_logger(lowest_level: int = logging.INFO) -> logging.Logger:
 
     formatter = logging.Formatter(default_format)
 
-    logger = logging.getLogger("smartschool")
+    logger = logging.getLogger("custom_components.smartschool")
     for h in logging.root.handlers:
         h.setFormatter(formatter)
 
