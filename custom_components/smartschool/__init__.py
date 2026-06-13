@@ -41,7 +41,7 @@ DOMAIN = manifest_data.get("domain")
 NAME = manifest_data.get("name")
 VERSION = manifest_data.get("version")
 ISSUEURL = manifest_data.get("issue_tracker")
-PLATFORMS = [Platform.SENSOR, Platform.TODO]
+PLATFORMS = [Platform.SENSOR, Platform.TODO, Platform.BUTTON]
 # PLATFORMS = [Platform.TODO]
 
 STARTUP = """
@@ -57,7 +57,7 @@ If you have any issues with this you need to open an issue here:
 )
 
 
-_LOGGER = logging.getLogger(DOMAIN)
+_LOGGER = logging.getLogger(__name__)
 
 
 # async def async_setup(hass: HomeAssistant, config: ConfigType):

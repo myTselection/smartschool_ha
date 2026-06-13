@@ -23,7 +23,7 @@ from .const import (
     DOMAIN,
 )
 
-_LOGGER = logging.getLogger(DOMAIN)
+_LOGGER = logging.getLogger(__name__)
 _DATETIME_FORMAT = "%Y-%m-%dT%H:%M:%S.0%z"
 
 

@@ -4,7 +4,7 @@ import logging
 from .const import (
     DOMAIN
 )
-_LOGGER = logging.getLogger(DOMAIN)
+_LOGGER = logging.getLogger(__name__)
 
 class ChecklistStatusStorage:
     def __init__(self, hass):
