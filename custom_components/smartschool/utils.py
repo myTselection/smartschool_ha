@@ -88,7 +88,7 @@ class ComponentSession(object):
     @limits(calls=1, period=5)
     def markAllUnreadMessagesRead(self):
         messages = self.getMessages()
-        unread_messages = [message for message in messages if message.status == 0 and message.unread]
+        unread_messages = [message for message in messages if message.status == 0]
         for message in unread_messages:
             list(MarkMessageRead(smartschool=self.smartschool, msg_id=message.id))
 
