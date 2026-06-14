@@ -533,7 +533,7 @@ class ShortMessage:
     status: int
     attachment: int
     unread: bool
-    label: bool
+    label: int
     deleted: bool
     allowreply: bool
     allowreplyenabled: bool
@@ -554,7 +554,7 @@ class FullMessage:
     status: int
     attachment: int
     unread: bool
-    label: bool
+    label: int
     receivers: list[str]
     ccreceivers: list[str]
     bccreceivers: list[str]
